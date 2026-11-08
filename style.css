@@ -470,3 +470,23 @@ button { font-family: inherit; cursor: pointer; border: 0; color: inherit; touch
 .dtile.got i { position: absolute; inset: 0; display: grid; place-items: center; font-style: normal; font-size: calc(8 * var(--u)); color: #2fb24a; }
 .dtile.today { border-color: #2fb24a; box-shadow: 0 0 0 calc(.8 * var(--u)) rgba(47,178,74,.35); animation: pulse .7s ease-in-out infinite alternate; }
 .xfer { width: 100%; margin-top: calc(4 * var(--u)); border-radius: calc(3 * var(--u)); border: calc(.5 * var(--u)) solid #8fd3ff; padding: calc(2 * var(--u)); font: 600 calc(3.4 * var(--u)) ui-monospace, monospace; color: #1f4f8f; background: #f4fbff; resize: none; user-select: text; -webkit-user-select: text; }
+
+/* ---------- Postkarten ---------- */
+.tabs { display: flex; gap: calc(2 * var(--u)); padding: 0 calc(4 * var(--u)) calc(1 * var(--u)); }
+.tab { flex: 1; padding: calc(2 * var(--u)); border-radius: calc(3 * var(--u)); font-weight: 700; font-size: calc(4 * var(--u)); background: rgba(10,50,110,.45); border: calc(.5 * var(--u)) solid rgba(255,255,255,.4); }
+.tab.on { background: linear-gradient(#5cc0ff, #1f7ae0); border-color: #fff; }
+.album.cards { grid-template-columns: 1fr 1fr; }
+.pcard { position: relative; padding: calc(1.6 * var(--u)) calc(1.6 * var(--u)) calc(2 * var(--u)); background: #fffaf0; border-radius: calc(2 * var(--u)); color: #4a3a20;
+  box-shadow: 0 calc(1 * var(--u)) calc(2 * var(--u)) rgba(0,20,60,.35); transform: rotate(-1.5deg); }
+.pcard:nth-child(even) { transform: rotate(1.5deg); }
+.pcard .pc-svg { display: block; width: 100%; aspect-ratio: 16 / 10; border-radius: calc(1 * var(--u)); }
+.pcard b { display: block; margin-top: calc(1.4 * var(--u)); font-size: calc(3.2 * var(--u)); line-height: 1.15; }
+.pcard.locked .pc-svg { filter: grayscale(1) brightness(.7) blur(1.5px); }
+.pcard i { position: absolute; left: 50%; top: 40%; transform: translate(-50%, -50%); font-style: normal; font-size: calc(9 * var(--u)); }
+.pc-more { grid-column: 1 / -1; text-align: center; font-size: calc(3.4 * var(--u)); opacity: .75; margin: calc(2 * var(--u)) 0; }
+.pc-big { background: #fffaf0; padding: calc(2 * var(--u)); border-radius: calc(2 * var(--u)); transform: rotate(-1.5deg); box-shadow: 0 calc(1 * var(--u)) calc(3 * var(--u)) rgba(0,20,60,.3); margin-top: calc(2 * var(--u)); }
+.pc-big .pc-svg { display: block; width: 100%; aspect-ratio: 16 / 10; border-radius: calc(1 * var(--u)); }
+@media (orientation: landscape) and (min-aspect-ratio: 5/4) {
+  #screen-aquarium .tabs { grid-column: 2; grid-row: 2; align-self: start; padding: 0 0 calc(2 * var(--u)); }
+  #screen-aquarium .album { margin-top: calc(13 * var(--u)); }
+}

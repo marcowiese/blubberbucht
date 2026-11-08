@@ -1,7 +1,7 @@
 // Blubberbucht – Spiellogik
 'use strict';
 
-const APP_VERSION = '1.11.0'; // nicht von Hand ändern: tools/release.sh <version>
+const APP_VERSION = '1.12.0'; // nicht von Hand ändern: tools/release.sh <version>
 const TRAY = 6, BOWLS = 4, BOWL_PRICE = 650, BOOSTER_PRICE = 200;
 const SAVE_KEY = 'blubberbucht-v1';
 const $ = s => document.querySelector(s);
@@ -598,6 +598,7 @@ function winLevel() {
     reward += `<div class="reward"><div class="ricon">${BOOSTER_ICONS[k]}</div><span>+1 ${BOOSTER_INFO[k].name}</span></div>`;
   }
   persist();
+  const newCard = replay ? -1 : POSTCARDS.findIndex(pc => pc.level === L);
   const species = [...new Set(Object.values(G.cr).map(c => c.sp))];
   const stars = G.usedBoosters === 0 ? 3 : G.usedBoosters <= 2 ? 2 : 1;
   showModal(`
@@ -608,7 +609,7 @@ function winLevel() {
     ${reward}
     <button class="btn green" data-act="next">Weiter</button>
     <button class="btn ghost" data-act="map">Levelkarte</button>`, {
-    next: () => startLevel(L + 1),
+    next: () => newCard >= 0 ? showPostcard(newCard, true, () => startLevel(L + 1)) : startLevel(L + 1),
     map: () => { hideModal(); openMap(); },
     aqua: () => { hideModal(); openAquarium(); },
   });
@@ -854,6 +855,15 @@ function tutRender() {
   box.style.bottom = below ? '' : (innerHeight - r.top + 20) + 'px';
 }
 
+// ---------- Postkarten ----------
+function showPostcard(i, isNew = false, after = hideModal) {
+  const pc = POSTCARDS[i];
+  showModal(`<div class="ribbon">${isNew ? 'Neue Postkarte!' : 'Postkarte'}</div>
+    <div class="pc-big">${postcardSVG(pc)}</div>
+    <h2>${pc.title}</h2><p>${pc.text}</p>
+    <button class="btn green" data-act="close">${isNew ? 'Weiter' : 'Schließen'}</button>`, { close: after });
+}
+
 // ---------- Levelkarte: Level 1 an der Oberfläche, je weiter, desto tiefer ----------
 function openMap() {
   clearInterval(timerId);
@@ -945,7 +955,22 @@ function openAquarium() {
   }).join('') : `<p class="tank-empty">Noch leer – sammle Tiere im Spiel!</p>`;
   const total = Object.values(save.caught).reduce((a, b) => a + b, 0);
   $('#aqua-stats').textContent = `${total} Tiere gesammelt · ${Object.keys(save.caught).length}/${SPECIES.length} Arten`;
-  $('#album').innerHTML = SPECIES.map((s, i) => {
+  renderAlbum();
+}
+let albumTab = 'animals';
+function renderAlbum() {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.tab === albumTab));
+  const al = $('#album');
+  al.classList.toggle('cards', albumTab === 'cards');
+  if (albumTab === 'cards') {
+    al.innerHTML = POSTCARDS.map((pc, i) => {
+      const open = save.level > pc.level;
+      return `<button class="pcard ${open ? '' : 'locked'}" data-pc="${i}" ${open ? '' : 'disabled'}>${postcardSVG(pc)}
+        <b>${open ? pc.title : `Ab Level ${pc.level}`}</b>${open ? '' : '<i>🔒</i>'}</button>`;
+    }).join('') + `<p class="pc-more">Weitere Postkarten folgen …</p>`;
+    return;
+  }
+  al.innerHTML = SPECIES.map((s, i) => {
     const n = save.caught[s.id] || 0, known = i < save.seen;
     return `<div class="acard ${n ? '' : 'locked'}">${creatureSVG(s.id)}<b>${known ? s.name : '???'}</b><small>${n ? n + '× gefangen' : known ? 'noch nicht gefangen' : 'unentdeckt'}</small></div>`;
   }).join('');
@@ -999,6 +1024,8 @@ function init() {
     startLevel(+n.dataset.level);
   });
   $('#btn-aqua-back').addEventListener('click', () => { Sfx.click(); openMenu(); });
+  document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => { Sfx.click(); albumTab = t.dataset.tab; renderAlbum(); }));
+  $('#album').addEventListener('click', e => { const c = e.target.closest('.pcard:not([disabled])'); if (c) { Sfx.click(); showPostcard(+c.dataset.pc); } });
   $('#btn-aqua-play').addEventListener('click', () => { Sfx.click(); startLevel(save.level); });
   document.querySelectorAll('.btn-settings').forEach(b => b.addEventListener('click', () => { Sfx.click(); openSettings(); }));
   $('#btn-help').addEventListener('click', () => {
