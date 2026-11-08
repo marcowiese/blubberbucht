@@ -10,7 +10,7 @@ Ein entspanntes Unterwasser-Sortierpuzzle für Smartphone und Tablet – direkt 
 - Tippe Meeresbewohner in den Blasen an.
 - Passt ein Tier zu einer Karte unter den Gläsern, schwimmt es ins Glas – sonst landet es in der Ablage (6 Plätze).
 - Drei gleiche im Glas = gesammelt, das Glas bekommt eine neue Art.
-- Abgedunkelte Blasen sind verdeckt und erst frei, wenn die Blasen darüber geplatzt sind.
+- Leere Blasen platzen, die Blasen darüber rutschen nach und neue kommen von oben ins Bild.
 - Ist die Ablage voll und kein Zug mehr möglich, ist das Level verloren.
 - Zu Beginn sind nur 2 Aquarien frei – Aquarium 3 und 4 kosten je 650 Münzen. Münzen gibt es für jedes geschaffte Level.
 - Leere Booster lassen sich für 180 Münzen (3 Stück) nachkaufen.

@@ -21,45 +21,33 @@ function persist() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save));
 const vib = ms => { if (save.vib && navigator.vibrate) navigator.vibrate(ms); };
 
 // ---------- Level-Aufbau ----------
-const DIFF = { s: .4, smax: 11 };
+const DIFF = { s: 1, smax: 11, t0: 9, t: .8 };
 const unlockedCount = L => Math.min(SPECIES.length, 3 + Math.floor((L - 1) * .6));
 function levelParams(L) {
   return {
-    layers: L <= 1 ? 1 : L <= 4 ? 2 : 3,
-    T: Math.min(6 + Math.floor(L * .9), 21),
+    T: Math.min(DIFF.t0 + Math.floor(L * DIFF.t), 26),
     S: Math.min(unlockedCount(L), 3 + Math.floor(L * DIFF.s), DIFF.smax),
     timed: L >= 6 && L % 6 === 0,
   };
 }
 
-function layoutSlots(A, layers) {
-  const H = 100 * A, rows = clamp(Math.round(H / 31), 3, 5), dy = H / rows;
-  const r0 = Math.min(16.2, dy * 0.55), j = () => (Math.random() - .5) * 3;
-  const slots = [];
-  const add = (x, y, layer, r) => slots.push({ x: clamp(x + j(), r, 100 - r), y: clamp(y + j(), r, H - r), layer, r });
-  for (let i = 0; i < rows; i++) for (let c = 0; c < 3; c++) add(16.7 + 33.3 * c, dy * (i + .5), 0, r0);
-  if (layers >= 2) for (let i = 0; i < rows - 1; i++) for (let c = 0; c < 2; c++) add(33.3 + 33.3 * c, dy * (i + 1), 1, r0 * .93);
-  if (layers >= 3) for (let i = 0; i < rows; i++) add(i % 2 ? 50 : (i % 4 ? 22 : 78), dy * (i + .5), 2, r0 * .86);
-  return { slots, H };
-}
+const COLS_X = [17.5, 50, 82.5], R0 = 16.2;
 
 let G = null;
 
 function genLevel(L) {
   const p = levelParams(L);
   const board = $('#board');
-  const A = clamp(board.clientHeight / Math.max(1, board.clientWidth), .8, 1.55);
-  const { slots, H } = layoutSlots(A, p.layers);
-  const T = Math.min(p.T, Math.floor(slots.length * .85));
-  let bubbles = slots.map((s, i) => ({ ...s, id: i, cap: 3, items: [] }));
-  let total = bubbles.length * 3;
-  while (total > T * 3) {
-    const open = bubbles.filter(b => b.cap > 0);
-    const b = open[rand(open.length)];
-    b.cap--; total--;
-  }
-  bubbles = bubbles.filter(b => b.cap > 0);
-  bubbles.forEach(b => b.r *= [0, .74, .88, 1][b.cap]);
+  const A = clamp(board.clientHeight / Math.max(1, board.clientWidth), .85, 1.6);
+  const H = 100 * A, T = p.T;
+  // Blasengrößen (1–3 Tiere), zusammen genau T*3 Tiere
+  const caps = []; let total = 0;
+  while (total < T * 3) { const c = Math.min(T * 3 - total, [1, 2, 2, 3, 3, 3][rand(6)]); caps.push(c); total += c; }
+  shuffle(caps);
+  const bubbles = caps.map((cap, i) => ({ id: i, cap, items: [], r: R0 * [0, .74, .88, 1][cap], jx: (Math.random() - .5) * 4, x: 50, y: -50 }));
+  // Spalten: Index 0 = ganz unten, weiter oben warten Blasen außerhalb des Bildes
+  const cols = [[], [], []];
+  bubbles.forEach((b, i) => cols[i % 3].push(b.id));
 
   const unlocked = SPECIES.slice(0, unlockedCount(L)).map(s => s.id);
   const newest = unlocked[unlocked.length - 1];
@@ -77,7 +65,7 @@ function genLevel(L) {
   // Zielkarten-Stapel: feste, zufällige Reihenfolge aller Dreiergruppen (hilft dem Spieler nicht)
   const counts = {}; Object.values(cr).forEach(c => counts[c.sp] = (counts[c.sp] || 0) + 1);
   const q = []; for (const sp in counts) for (let i = 0; i < counts[sp] / 3; i++) q.push(sp);
-  return { level: L, H, bubbles, cr, nextB: bubbles.length, total: n, collected: 0, species: chosen, queue: shuffle(q),
+  return { level: L, H, bubbles, cols, cr, nextB: bubbles.length, total: n, collected: 0, species: chosen, queue: shuffle(q),
     bowls: Array.from({ length: BOWLS }, (_, i) => ({ sp: null, items: [], completing: false, locked: i >= save.bowlsOpen })),
     tray: [], pending: 0, over: false, paused: false, timed: p.timed,
     timeLeft: p.timed ? Math.ceil(n * 2.4) + 15 : 0, extraTime: false, usedBoosters: 0 };
@@ -85,8 +73,27 @@ function genLevel(L) {
 
 // ---------- Hilfsfunktionen zum Zustand ----------
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
-function isBlocked(b) {
-  return G.bubbles.some(o => o !== b && o.layer > b.layer && o.items.length && dist(o, b) < (o.r + b.r) * .8);
+// Nur Blasen, die (fast) ganz im Bild sind, lassen sich antippen
+function isBlocked(b) { return b.y < b.r * .55; }
+// Schwerkraft: Blasen jeder Spalte liegen von unten nach oben aufeinander
+function relayout() {
+  const byId = new Map(G.bubbles.map(b => [b.id, b]));
+  G.cols.forEach((col, c) => {
+    let y = G.H - (c === 1 ? R0 * .95 : 1.5), prev = null;
+    for (const id of col) {
+      const b = byId.get(id);
+      y -= prev ? (prev.r + b.r) * .94 : b.r;
+      b.x = clamp(COLS_X[c] + b.jx, b.r, 100 - b.r); b.y = y;
+      prev = b;
+    }
+  });
+}
+// leere Blasen entfernen -> die darüber rutschen nach
+function dropEmpty() {
+  G.bubbles = G.bubbles.filter(b => b.items.length);
+  const alive = new Set(G.bubbles.map(b => b.id));
+  G.cols = G.cols.map(col => col.filter(id => alive.has(id)));
+  relayout();
 }
 function bubbleOf(uid) { return G.bubbles.find(b => b.items.includes(uid)); }
 function countWhere(sp, onlyFree = false) {
@@ -147,12 +154,35 @@ function renderBoard() {
   const board = $('#board'), stage = $('#stage');
   const W = board.clientWidth, H = board.clientHeight;
   const s = Math.min(W / 100, H / G.H);
-  Object.assign(stage.style, { width: 100 * s + 'px', height: G.H * s + 'px', left: (W - 100 * s) / 2 + 'px', top: (H - G.H * s) / 2 + 'px' });
-  stage.innerHTML = G.bubbles.filter(b => b.items.length).map(b => {
-    const d = b.r * 2 * s, pos = POS[b.items.length];
-    const items = b.items.map((u, i) => crHTML(u, `left:${pos[i][0] * 100}%;top:${pos[i][1] * 100}%;width:${pos[i][2] * 100}%`)).join('');
-    return `<div class="bubble ${isBlocked(b) ? 'blocked' : ''}" data-b="${b.id}" style="left:${(b.x - b.r) * s}px;top:${(b.y - b.r) * s}px;width:${d}px;height:${d}px;z-index:${b.layer * 10 + 1}">${items}</div>`;
-  }).join('');
+  Object.assign(stage.style, { width: 100 * s + 'px', height: G.H * s + 'px', left: (W - 100 * s) / 2 + 'px', top: (H - G.H * s) + 'px' });
+  const existing = new Map([...stage.children].map(e => [e.dataset.b, e]));
+  const keep = new Set();
+  for (const b of G.bubbles) {
+    if (!b.items.length) continue;
+    const id = String(b.id); keep.add(id);
+    const d = b.r * 2 * s, left = (b.x - b.r) * s, top = (b.y - b.r) * s;
+    let el = existing.get(id);
+    if (!el) {
+      // neue Blase startet oberhalb des Spielfelds und rutscht hinein
+      el = document.createElement('div');
+      el.className = 'bubble'; el.dataset.b = id;
+      Object.assign(el.style, { left: left + 'px', top: Math.min(top, -d - 8) + 'px', width: d + 'px', height: d + 'px' });
+      stage.appendChild(el);
+      void el.offsetWidth;
+    }
+    Object.assign(el.style, { left: left + 'px', top: top + 'px', width: d + 'px', height: d + 'px' });
+    el.classList.toggle('far', isBlocked(b));
+    const pos = POS[b.items.length];
+    const crs = new Map([...el.querySelectorAll('.cr')].map(c => [c.dataset.uid, c]));
+    b.items.forEach((u, i) => {
+      let c = crs.get(u);
+      if (!c) { el.insertAdjacentHTML('beforeend', crHTML(u)); c = el.lastElementChild; }
+      crs.delete(u);
+      Object.assign(c.style, { left: pos[i][0] * 100 + '%', top: pos[i][1] * 100 + '%', width: pos[i][2] * 100 + '%' });
+    });
+    crs.forEach(c => c.remove());
+  }
+  existing.forEach((e, id) => { if (!keep.has(id)) e.remove(); });
 }
 function renderBowls() {
   $('#bowls').innerHTML = G.bowls.map((w, i) => w.locked
@@ -228,9 +258,10 @@ function animateMoves(before, stagger = false) {
   });
 }
 function commit(fn, stagger = false) {
-  if (window.SIM) { fn(); return; }
+  if (window.SIM) { fn(); if (G) dropEmpty(); return; }
   const before = captureRects();
   fn();
+  if (G) dropEmpty();
   render();
   animateMoves(before, stagger);
 }
@@ -425,7 +456,7 @@ function boostNet() {
   if (!cands.length) { toast('Gerade kein Glas frei – gleich nochmal!'); return false; }
   const bw = cands[0], need = 3 - bw.items.length;
   const src = [];
-  G.bubbles.forEach(b => b.items.forEach(u => { if (G.cr[u].sp === bw.sp) src.push({ b, u, s: (isBlocked(b) ? 0 : 100) + b.layer * 5 + Math.random() }); }));
+  G.bubbles.forEach(b => b.items.forEach(u => { if (G.cr[u].sp === bw.sp) src.push({ b, u, s: (isBlocked(b) ? 0 : 100) + b.y * .1 + Math.random() }); }));
   src.sort((a, b) => b.s - a.s);
   const take = src.slice(0, need);
   const bursts = [];
@@ -442,16 +473,14 @@ function boostNet() {
 }
 function boostBrush() {
   if (!G.tray.length) { toast('Die Ablage ist schon leer.'); return false; }
-  const r = 14.5, maxL = Math.max(...G.bubbles.filter(b => b.items.length).map(b => b.layer), 0) + 1;
-  let best = null, bs = 1e9;
-  for (let x = r; x <= 100 - r; x += 8) for (let y = r; y <= G.H - r; y += 8) {
-    const p = { x, y };
-    const s = G.bubbles.reduce((a, b) => a + (b.items.length ? Math.max(0, b.r + r - dist(b, p)) : 0), 0) + Math.random();
-    if (s < bs) { bs = s; best = p; }
-  }
   commit(() => {
     const take = G.tray.splice(0, Math.min(3, G.tray.length));
-    G.bubbles.push({ id: G.nextB++, x: best.x, y: best.y, r: r * [0, .74, .88, 1][take.length], layer: maxL, cap: take.length, items: take });
+    const b = { id: G.nextB++, cap: take.length, items: take, r: R0 * [0, .74, .88, 1][take.length], jx: (Math.random() - .5) * 4, x: 50, y: -50 };
+    G.bubbles.push(b);
+    // in die Spalte mit den wenigsten sichtbaren Blasen, ganz oben im sichtbaren Bereich
+    let best = 0, bestN = 1e9;
+    G.cols.forEach((col, c) => { const nVis = col.filter(id => !isBlocked(G.bubbles.find(x => x.id === id))).length; if (nVis < bestN) { bestN = nVis; best = c; } });
+    G.cols[best].splice(bestN, 0, b.id);
   });
   return true;
 }
@@ -491,9 +520,10 @@ function startLevel(L) {
   showScreen('game');
   requestAnimationFrame(() => {
     G = genLevel(L);
+    relayout();
     settle();
+    $('#stage').innerHTML = '';
     render();
-    document.querySelectorAll('#stage .bubble').forEach((el, i) => { el.classList.add('enter'); el.style.animationDelay = (i * 35) + 'ms'; });
     startTimer();
     const u = unlockedCount(L);
     if (u > save.seen) {
@@ -617,7 +647,7 @@ function openSettings() {
     <label class="toggle"><span>📳 Vibration</span><input type="checkbox" data-set="vib" ${save.vib ? 'checked' : ''}><i></i></label>
     <div class="help">
       <b>So geht's:</b> Tippe Tiere in den Blasen an. Passt ein Tier zu einer Karte unter den Gläsern, schwimmt es ins Glas – sonst landet es in der Ablage.
-      Drei gleiche im Glas = gesammelt! Dunkle Blasen sind verdeckt. Ist die Ablage voll, ist das Level verloren.
+      Drei gleiche im Glas = gesammelt! Leere Blasen platzen und von oben rutschen neue nach. Ist die Ablage voll, ist das Level verloren.
     </div>
     ${inGame ? `<button class="btn orange" data-act="restart">Level neu starten</button><button class="btn ghost" data-act="menu">Hauptmenü</button>` : ''}
     <button class="btn green" data-act="close">Weiter</button>
