@@ -1,7 +1,7 @@
 // Blubberbucht – Spiellogik
 'use strict';
 
-const APP_VERSION = '1.10.0'; // nicht von Hand ändern: tools/release.sh <version>
+const APP_VERSION = '1.10.1'; // nicht von Hand ändern: tools/release.sh <version>
 const TRAY = 6, BOWLS = 4, BOWL_PRICE = 650, BOOSTER_PRICE = 200;
 const SAVE_KEY = 'blubberbucht-v1';
 const $ = s => document.querySelector(s);
@@ -66,7 +66,7 @@ function genLevel(L) {
   const cr = {}; let n = 0;
   for (const b of bubbles) for (let k = 0; k < b.cap; k++) {
     const uid = 'c' + (n++);
-    cr[uid] = { uid, sp: list.pop(), rot: (Math.random() - .5) * 16, flip: Math.random() < .2 };
+    cr[uid] = { uid, sp: list.pop(), rot: (Math.random() - .5) * 16, flip: Math.random() < .2, slot: k };
     b.items.push(uid);
   }
   // Zielkarten-Stapel: feste, zufällige Reihenfolge aller Dreiergruppen (hilft dem Spieler nicht)
@@ -100,7 +100,11 @@ function dropEmpty() {
   G.bubbles = G.bubbles.filter(b => b.items.length);
   const alive = new Set(G.bubbles.map(b => b.id));
   G.cols = G.cols.map(col => col.filter(id => alive.has(id)));
+  const oldY = new Map(G.bubbles.map(b => [b.id, b.y]));
   relayout();
+  // Blasen, die gerade nachrutschen, kurz nicht antippbar machen – sonst trifft man leicht das falsche Tier
+  const until = performance.now() + 480;
+  G.bubbles.forEach(b => { if (Math.abs((oldY.get(b.id) ?? b.y) - b.y) > .5) b.moveUntil = until; });
 }
 function bubbleOf(uid) { return G.bubbles.find(b => b.items.includes(uid)); }
 function countWhere(sp, onlyFree = false) {
@@ -179,13 +183,15 @@ function renderBoard() {
     }
     Object.assign(el.style, { left: left + 'px', top: top + 'px', width: d + 'px', height: d + 'px' });
     el.classList.toggle('far', isBlocked(b));
-    const pos = POS[b.items.length];
+    // Jedes Tier behält seinen Platz in der Blase – nichts rückt nach, wenn eines herausgenommen wird
+    const pos = POS[b.cap] || POS[3];
     const crs = new Map([...el.querySelectorAll('.cr')].map(c => [c.dataset.uid, c]));
     b.items.forEach((u, i) => {
       let c = crs.get(u);
       if (!c) { el.insertAdjacentHTML('beforeend', crHTML(u)); c = el.lastElementChild; }
       crs.delete(u);
-      Object.assign(c.style, { left: pos[i][0] * 100 + '%', top: pos[i][1] * 100 + '%', width: pos[i][2] * 100 + '%' });
+      const p = pos[G.cr[u].slot] || pos[i] || POS[3][i];
+      Object.assign(c.style, { left: p[0] * 100 + '%', top: p[1] * 100 + '%', width: p[2] * 100 + '%' });
     });
     crs.forEach(c => c.remove());
   }
@@ -367,6 +373,7 @@ function onBoardTap(e) {
   if (!bEl) return;
   const b = G.bubbles.find(x => x.id === +bEl.dataset.b);
   if (!b || !b.items.length) return;
+  if (b.moveUntil && performance.now() < b.moveUntil) return;
   if (isBlocked(b)) { shake(bEl); Sfx.error(); return; }
   let uid = e.target.closest('.cr[data-uid]')?.dataset.uid;
   if (!uid) {
@@ -485,6 +492,7 @@ function boostBrush() {
   if (!G.tray.length) { toast('Die Ablage ist schon leer.'); return false; }
   commit(() => {
     const take = G.tray.splice(0, Math.min(3, G.tray.length));
+    take.forEach((u, i) => G.cr[u].slot = i);
     const b = { id: G.nextB++, cap: take.length, items: take, r: R0 * [0, .74, .88, 1][take.length], jx: (Math.random() - .5) * 4, x: 50, y: -50 };
     G.bubbles.push(b);
     // in die Spalte mit den wenigsten sichtbaren Blasen, ganz oben im sichtbaren Bereich
@@ -500,7 +508,11 @@ function boostShuffle() {
   if (all.length < 2) { toast('Hier gibt es nichts mehr zu mischen.'); return false; }
   shuffle(all);
   let k = 0;
-  commit(() => G.bubbles.forEach(b => { const n = b.items.length; b.items = all.slice(k, k + n); k += n; }));
+  commit(() => G.bubbles.forEach(b => {
+    const slots = b.items.map(u => G.cr[u].slot), n = b.items.length;
+    b.items = all.slice(k, k + n); k += n;
+    b.items.forEach((u, i) => G.cr[u].slot = slots[i]);
+  }));
   return true;
 }
 function boosterFx(k) {
