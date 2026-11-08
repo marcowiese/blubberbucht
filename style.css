@@ -350,3 +350,4 @@ button { font-family: inherit; cursor: pointer; border: 0; color: inherit; touch
 .tier.t2 { background: linear-gradient(#ff7a7a, #d8252b); animation: pulse .8s ease-in-out infinite alternate; }
 .menu-version { position: absolute; bottom: calc(env(safe-area-inset-bottom) + 2cqw); left: 0; right: 0; margin: 0; text-align: center; font-size: 3.2cqw; font-weight: 600; opacity: .8; text-shadow: 0 .3cqw 0 rgba(0,40,100,.5); }
 .panel .version { font-size: 3.4cqw; opacity: .6; margin: 3cqw 0 0; }
+.btn.small-btn { font-size: 4.2cqw; padding: 2cqw 4cqw; margin-top: 1cqw; }
