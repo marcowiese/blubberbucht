@@ -443,3 +443,17 @@ button { font-family: inherit; cursor: pointer; border: 0; color: inherit; touch
 @media (orientation: landscape) and (min-aspect-ratio: 5/4) {
   #screen-map { --u: calc(min(60vw, 80dvh, 640px) / 100); width: min(100vw, calc(100 * var(--u) + 8vw)); }
 }
+
+/* ---------- Tutorial ---------- */
+#tut { position: fixed; inset: 0; z-index: 480; pointer-events: none; }
+.tut-block { position: absolute; inset: 0; }
+.tut-ring { position: absolute; border-radius: 22px; border: 3px solid #fff36b; box-shadow: 0 0 0 200vmax rgba(5,25,60,.6), 0 0 22px #fff36b; transition: all .35s ease; pointer-events: none; }
+.tut-finger { position: absolute; font-size: calc(12 * var(--u)); transform: translate(-30%, 0); animation: tapme .8s ease-in-out infinite alternate; pointer-events: none; filter: drop-shadow(0 4px 6px rgba(0,0,0,.4)); }
+@keyframes tapme { from { translate: 0 0; } to { translate: 0 -18px; } }
+.tut-box {
+  position: absolute; left: 50%; transform: translateX(-50%); width: min(86vw, calc(84 * var(--u)));
+  background: linear-gradient(#fff, #dff3ff); color: #1f4f8f; border-radius: calc(5 * var(--u)); border: calc(.8 * var(--u)) solid #8fd3ff;
+  padding: calc(4 * var(--u)) calc(5 * var(--u)); text-align: center; pointer-events: auto; box-shadow: 0 2vh 4vh rgba(0,20,60,.4);
+}
+.tut-box p { margin: 0; font-size: calc(4.6 * var(--u)); font-weight: 500; line-height: 1.35; }
+.tut-box .btn { margin-top: calc(3 * var(--u)); }

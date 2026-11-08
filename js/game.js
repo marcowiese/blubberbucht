@@ -1,7 +1,7 @@
 // Blubberbucht – Spiellogik
 'use strict';
 
-const APP_VERSION = '1.8.0'; // nicht von Hand ändern: tools/release.sh <version>
+const APP_VERSION = '1.9.0'; // nicht von Hand ändern: tools/release.sh <version>
 const TRAY = 6, BOWLS = 4, BOWL_PRICE = 650, BOOSTER_PRICE = 200;
 const SAVE_KEY = 'blubberbucht-v1';
 const $ = s => document.querySelector(s);
@@ -10,7 +10,7 @@ const rand = n => Math.floor(Math.random() * n);
 const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = rand(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 
 // ---------- Speicherstand ----------
-const DEFAULTS = { level: 1, boosters: { net: 1, brush: 1, shuffle: 1 }, caught: {}, aquarium: [], sound: true, music: true, vib: true, seen: 3, coins: 100, stars: {} };
+const DEFAULTS = { level: 1, boosters: { net: 1, brush: 1, shuffle: 1 }, caught: {}, aquarium: [], sound: true, music: true, vib: true, seen: 3, coins: 100, stars: {}, tutorialDone: false };
 let save = loadSave();
 function loadSave() {
   try {
@@ -376,7 +376,8 @@ function onBoardTap(e) {
       if (d < best) { best = d; uid = c.dataset.uid; }
     });
   }
-  if (uid) { Sfx.pop(); pick(uid); }
+  if (uid && TUT.step === 2 && uid !== TUT.target) { shake(document.querySelector(`#stage .cr[data-uid="${TUT.target}"]`)?.closest('.bubble') || bEl); return; }
+  if (uid) { Sfx.pop(); pick(uid); tutPicked(uid); }
 }
 
 function afterChange() {
@@ -536,6 +537,7 @@ function startLevel(L) {
     $('#stage').innerHTML = '';
     render();
     startTimer();
+    if (L === 1 && !save.tutorialDone) setTimeout(tutStart, 700);
     const u = unlockedCount(L);
     if (u > save.seen) {
       const sp = SPECIES[u - 1];
@@ -680,12 +682,13 @@ function openSettings() {
       <b>So geht's:</b> Tippe Tiere in den Blasen an. Passt ein Tier zu einer Karte unter den Gläsern, schwimmt es ins Glas – sonst landet es in der Ablage.
       Drei gleiche im Glas = gesammelt! Leere Blasen platzen und von oben rutschen neue nach. Ist die Ablage voll, ist das Level verloren.
     </div>
-    ${inGame ? `<button class="btn orange" data-act="restart">Level neu starten</button><button class="btn ghost" data-act="menu">Hauptmenü</button>` : ''}
+    ${inGame ? `<button class="btn blue" data-act="tutorial">❓ Anleitung zeigen</button><button class="btn orange" data-act="restart">Level neu starten</button><button class="btn ghost" data-act="menu">Hauptmenü</button>` : ''}
     <button class="btn green" data-act="close">Weiter</button>
     ${inGame ? '' : `<button class="btn link" data-act="reset">Fortschritt zurücksetzen</button>`}
     <p class="version">Blubberbucht v${APP_VERSION} · von Hase Games</p>`, {
     close: hideModal,
     restart: () => startLevel(G.level),
+    tutorial: () => { hideModal(); tutStart(); },
     menu: () => { hideModal(); openMenu(); },
     reset: () => showModal(`<div class="ribbon red">Wirklich?</div><p>Level, Booster und Aquarium werden gelöscht.</p>
       <button class="btn orange" data-act="yes">Ja, zurücksetzen</button><button class="btn green" data-act="no">Abbrechen</button>`, {
@@ -725,6 +728,66 @@ function applyUpdate() {
 const inLevel = () => G && !G.over && !$('#screen-game').hidden;
 async function updateIfIdle() { if (await checkForUpdate() && !inLevel()) applyUpdate(); }
 
+// ---------- Tutorial (Level 1 bzw. über die Einstellungen) ----------
+const TUT = { step: 0, target: null };
+function tutEl() {
+  let t = $('#tut');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'tut';
+    t.innerHTML = `<div class="tut-block"></div><div class="tut-ring"></div><div class="tut-finger">👆</div><div class="tut-box"><p></p><button class="btn green"></button></div>`;
+    document.body.appendChild(t);
+    t.querySelector('.tut-box .btn').addEventListener('click', () => { Sfx.click(); tutNext(); });
+  }
+  return t;
+}
+function tutStart() { if (!G) return; TUT.step = 1; tutRender(); }
+function tutStop() {
+  TUT.step = 0; TUT.target = null;
+  $('#tut')?.remove();
+  save.tutorialDone = true; persist();
+  if (G) G.paused = false;
+}
+function tutNext() {
+  if (TUT.step === 1) {
+    // passendes, antippbares Tier suchen
+    const u = G.bubbles.filter(b => b.items.length && !isBlocked(b)).flatMap(b => b.items).find(x => openBowlFor(G.cr[x].sp));
+    if (u) { TUT.target = u; TUT.step = 2; } else TUT.step = 4;
+  } else if (TUT.step === 3) TUT.step = 4;
+  else if (TUT.step === 4) return tutStop();
+  tutRender();
+}
+function tutPicked(uid) {               // aus pick(): Zieltier wurde angetippt
+  if (TUT.step !== 2 || uid !== TUT.target) return;
+  TUT.step = 3; TUT.bowl = G.bowls.indexOf(G.bowls.find(w => w.items.includes(uid)));
+  $('#tut').style.visibility = 'hidden';
+  setTimeout(() => { if (TUT.step === 3) { $('#tut').style.visibility = ''; tutRender(); } }, 750);
+}
+function tutRender() {
+  if (!TUT.step || !G) return;
+  const t = tutEl();
+  G.paused = TUT.step !== 2;            // in Schritt 2 darf (nur) das Zieltier angetippt werden
+  let el, text, btn = 'Weiter', block = true;
+  if (TUT.step === 1) { el = document.querySelector('#cards .card'); text = 'Unter jedem Glas zeigt eine <b>Karte</b>, welches Tier hinein gehört.'; }
+  if (TUT.step === 2) { el = document.querySelector(`#stage .cr[data-uid="${TUT.target}"]`); text = 'Tippe dieses Tier an – es schwimmt ins passende Glas.'; btn = ''; block = false; }
+  if (TUT.step === 3) { el = document.querySelector(`[data-bowl="${TUT.bowl}"]`); text = 'Super! Sind <b>3 gleiche</b> Tiere im Glas, sind sie gesammelt und das Glas bekommt eine neue Karte.'; }
+  if (TUT.step === 4) { el = $('#tray'); text = 'Passt ein Tier zu keiner Karte, landet es in der <b>Ablage</b>. Ist die Ablage voll, ist das Level verloren – also gut planen!'; btn = "Los geht's!"; }
+  if (!el) return tutStop();
+  const r = el.getBoundingClientRect(), pad = 8;
+  Object.assign(t.querySelector('.tut-ring').style, { left: r.left - pad + 'px', top: r.top - pad + 'px', width: r.width + pad * 2 + 'px', height: r.height + pad * 2 + 'px' });
+  t.querySelector('.tut-block').style.pointerEvents = block ? 'auto' : 'none';
+  const f = t.querySelector('.tut-finger');
+  f.hidden = TUT.step !== 2;
+  Object.assign(f.style, { left: r.left + r.width / 2 + 'px', top: r.bottom + 'px' });
+  const box = t.querySelector('.tut-box');
+  box.querySelector('p').innerHTML = text;
+  const b = box.querySelector('.btn'); b.hidden = !btn; b.textContent = btn;
+  // Textbox unter das Ziel, außer es ist zu weit unten
+  const below = r.bottom + 170 < innerHeight;
+  box.style.top = below ? (r.bottom + (TUT.step === 2 ? 70 : 20)) + 'px' : '';
+  box.style.bottom = below ? '' : (innerHeight - r.top + 20) + 'px';
+}
+
 // ---------- Levelkarte: Level 1 an der Oberfläche, je weiter, desto tiefer ----------
 function openMap() {
   clearInterval(timerId);
@@ -757,6 +820,7 @@ function openMap() {
 
 // ---------- Screens ----------
 function showScreen(name) {
+  if (TUT.step) { TUT.step = 0; $('#tut')?.remove(); }
   document.querySelectorAll('.screen').forEach(s => s.hidden = s.id !== 'screen-' + name);
 }
 function openMenu() {
@@ -852,7 +916,7 @@ function init() {
     if (k === 'vib') vib(20);
   });
   let rt;
-  window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { if (G && !$('#screen-game').hidden) commit(() => {}); }, 120); });
+  window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { if (G && !$('#screen-game').hidden) { commit(() => {}); setTimeout(tutRender, 450); } }, 120); });
   document.addEventListener('pointerdown', () => Sfx.unlock(), { once: true });
   openMenu();
   updateIfIdle();
