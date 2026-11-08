@@ -1,7 +1,7 @@
 // Blubberbucht – Spiellogik
 'use strict';
 
-const APP_VERSION = '1.5.4'; // bei jeder Veröffentlichung erhöhen (auch CACHE in sw.js)
+const APP_VERSION = '1.5.5'; // bei jeder Veröffentlichung erhöhen (auch CACHE in sw.js)
 const TRAY = 6, BOWLS = 4, BOWL_PRICE = 650, BOOSTER_PRICE = 200;
 const SAVE_KEY = 'blubberbucht-v1';
 const $ = s => document.querySelector(s);
@@ -682,7 +682,7 @@ function openSettings() {
     <label class="toggle"><span>🔊 Soundeffekte</span><input type="checkbox" data-set="sound" ${save.sound ? 'checked' : ''}><i></i></label>
     <label class="toggle"><span>📳 Vibration</span><input type="checkbox" data-set="vib" ${save.vib ? 'checked' : ''}><i></i></label>
     <button class="btn ghost small-btn" data-act="vibtest">📳 Vibration testen</button>
-    <p class="version">${canVibrate ? 'Methode: Android-Vibration' : 'Methode: iPhone-Haptik (ab iOS 18, „Systemhaptik“ muss an sein)'}</p>
+    ${canVibrate ? '' : '<p class="version">Hinweis: Auf iPhone und iPad erlaubt Apple Web-Apps keine Vibration. Dort funktioniert sie leider nur in einer App aus dem App Store.</p>'}
     <div class="help">
       <b>So geht's:</b> Tippe Tiere in den Blasen an. Passt ein Tier zu einer Karte unter den Gläsern, schwimmt es ins Glas – sonst landet es in der Ablage.
       Drei gleiche im Glas = gesammelt! Leere Blasen platzen und von oben rutschen neue nach. Ist die Ablage voll, ist das Level verloren.
