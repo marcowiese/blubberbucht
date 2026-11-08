@@ -63,7 +63,8 @@ const Sfx = (() => {
   const blub = (f, delay, vol = .12, dur = .06) => sweep(f, f * 2.6, dur, { vol, delay });
 
   // ---------- Musik: die 4 Tracks nacheinander, danach wieder von vorne ----------
-  const TRACKS = ['music/track1.mp3', 'music/track2.mp3', 'music/track3.mp3', 'music/track4.mp3'];
+  // Reihenfolge der Playlist – nach dem letzten Titel geht es wieder von vorne los
+  const TRACKS = ['music/01-bubble-fish.mp3', 'music/02-crystal-bubbles.mp3', 'music/03-coral-garden.mp3', 'music/04-moonlit-aquarium.mp3'];
   let musicOn = false, track = 0, player = null;
   function getPlayer() {
     if (!player) {

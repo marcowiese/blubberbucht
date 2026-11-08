@@ -24,7 +24,7 @@ Ein entspanntes Unterwasser-Sortierpuzzle für Smartphone und Tablet – direkt 
 ## Weiteres
 - Endlose, automatisch erzeugte Level mit steigender Schwierigkeit, Zeit-Challenges in jedem 6. Level
 - 16 Arten zum Entdecken, eigenes Aquarium mit allen gesammelten Tieren
-- Grafiken und Soundeffekte werden im Code erzeugt; Musik: 4 eigene Tracks © Hase Games
+- Grafiken und Soundeffekte werden im Code erzeugt; Musik: 4 eigene Tracks © Hase Games (Bubble Fish, Crystal Bubbles, Coral Garden, Moonlit Aquarium)
 - Musik und Soundeffekte getrennt ein-/ausschaltbar
 - Fortschritt wird lokal im Browser gespeichert
 
