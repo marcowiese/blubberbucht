@@ -11,7 +11,7 @@ Ein entspanntes Unterwasser-Sortierpuzzle für Smartphone und Tablet – direkt 
 - Passt ein Tier zu einer Karte unter den Gläsern, schwimmt es ins Glas – sonst landet es in der Ablage (6 Plätze).
 - Drei gleiche im Glas = gesammelt, das Glas bekommt eine neue Art.
 - Leere Blasen platzen, die Blasen darüber rutschen nach und neue kommen von oben ins Bild.
-- Ist die Ablage voll und kein Zug mehr möglich, ist das Level verloren.
+- Ist die Ablage voll, ist das Level verloren.
 - In jedem Level sind 2 Aquarien frei – Aquarium 3 und 4 lassen sich für je 650 Münzen für das laufende Level dazukaufen.
 - Jedes 5. Level ist „Schwer“, jedes 10. „Extrem schwer“.
 - Münzen gibt es für jedes geschaffte Level (mehr für schwere Level). Booster kosten 200 Münzen.

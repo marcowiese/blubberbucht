@@ -1,6 +1,7 @@
 // Blubberbucht – Spiellogik
 'use strict';
 
+const APP_VERSION = '1.5.0'; // bei jeder Veröffentlichung erhöhen (auch CACHE in sw.js)
 const TRAY = 6, BOWLS = 4, BOWL_PRICE = 650, BOOSTER_PRICE = 200;
 const SAVE_KEY = 'blubberbucht-v1';
 const $ = s => document.querySelector(s);
@@ -383,7 +384,7 @@ function afterChange() {
   if (left === 0 && G.tray.length === 0 && G.pending === 0 && G.bowls.every(w => !w.items.length)) {
     G.over = true;
     setTimeout(winLevel, 450);
-  } else if (G.tray.length >= TRAY && G.pending === 0 && !canMove()) {
+  } else if (G.tray.length >= TRAY && G.pending === 0) {
     G.over = true;
     setTimeout(() => loseLevel('tray'), 500);
   }
@@ -663,7 +664,8 @@ function openSettings() {
     </div>
     ${inGame ? `<button class="btn orange" data-act="restart">Level neu starten</button><button class="btn ghost" data-act="menu">Hauptmenü</button>` : ''}
     <button class="btn green" data-act="close">Weiter</button>
-    ${inGame ? '' : `<button class="btn link" data-act="reset">Fortschritt zurücksetzen</button>`}`, {
+    ${inGame ? '' : `<button class="btn link" data-act="reset">Fortschritt zurücksetzen</button>`}
+    <p class="version">Blubberbucht v${APP_VERSION} · von Hase Games</p>`, {
     close: hideModal,
     restart: () => startLevel(G.level),
     menu: () => { hideModal(); openMenu(); },
@@ -726,6 +728,7 @@ const BOOSTER_ICONS = {
 function init() {
   buildSpeciesDefs();
   document.querySelectorAll('.coin-pill .ci').forEach(e => e.innerHTML = COIN);
+  $('#menu-version').textContent = `v${APP_VERSION}`;
   Sfx.enabled = save.sound;
   Sfx.music = save.music;
   document.querySelectorAll('[data-booster]').forEach(b => {
