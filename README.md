@@ -29,3 +29,10 @@ Ein entspanntes Unterwasser-Sortierpuzzle für Smartphone und Tablet – direkt 
 - Fortschritt wird lokal im Browser gespeichert
 
 Technik: reines HTML/CSS/JavaScript, keine Abhängigkeiten.
+
+## Neue Version veröffentlichen
+```bash
+tools/release.sh 1.6.1   # setzt Versionsnummer überall
+git commit -am "v1.6.1: …" && git push
+```
+Das Spiel prüft beim Start, beim Zurückkehren in die App und vor jedem Level `version.json` und lädt eine neue Version automatisch (nie mitten im Level).

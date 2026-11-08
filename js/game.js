@@ -1,7 +1,7 @@
 // Blubberbucht – Spiellogik
 'use strict';
 
-const APP_VERSION = '1.5.7'; // bei jeder Veröffentlichung erhöhen (auch CACHE in sw.js)
+const APP_VERSION = '1.6.0'; // nicht von Hand ändern: tools/release.sh <version>
 const TRAY = 6, BOWLS = 4, BOWL_PRICE = 650, BOOSTER_PRICE = 200;
 const SAVE_KEY = 'blubberbucht-v1';
 const $ = s => document.querySelector(s);
@@ -525,6 +525,8 @@ function startTimer() {
 
 // ---------- Level-Ablauf ----------
 function startLevel(L) {
+  if (updateWaiting && applyUpdate()) return;
+  checkForUpdate();
   hideModal(); clearFx();
   showScreen('game');
   requestAnimationFrame(() => {
@@ -687,11 +689,41 @@ function openSettings() {
   draw();
 }
 
+// ---------- Update-Prüfung ----------
+// version.json wird bei jeder Veröffentlichung mit hochgezählt. Ist dort eine andere Version
+// als die geladene eingetragen, lädt das Spiel neu – aber nie mitten in einem laufenden Level.
+let updateWaiting = false, swReg = null;
+async function checkForUpdate() {
+  if (location.protocol !== 'https:' && location.hostname !== 'localhost') return false;
+  try {
+    const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
+    if (!r.ok) return false;
+    const { version } = await r.json();
+    if (!version || version === APP_VERSION) return false;
+    // Schutz gegen Endlosschleife, falls der Server kurz noch alte Dateien liefert
+    const tried = sessionStorage.getItem('bb-update-tried');
+    if (tried === version) return false;
+    updateWaiting = version;
+    swReg?.update().catch(() => {});
+    return true;
+  } catch { return false; }
+}
+function applyUpdate() {
+  if (!updateWaiting) return false;
+  try { sessionStorage.setItem('bb-update-tried', updateWaiting); } catch {}
+  toast(`Neue Version ${updateWaiting} wird geladen …`);
+  setTimeout(() => location.reload(), 600);
+  return true;
+}
+const inLevel = () => G && !G.over && !$('#screen-game').hidden;
+async function updateIfIdle() { if (await checkForUpdate() && !inLevel()) applyUpdate(); }
+
 // ---------- Screens ----------
 function showScreen(name) {
   document.querySelectorAll('.screen').forEach(s => s.hidden = s.id !== 'screen-' + name);
 }
 function openMenu() {
+  if (updateWaiting && applyUpdate()) return;
   clearInterval(timerId); clearFx();
   G = null;
   $('#menu-level').textContent = `Level ${save.level}`;
@@ -747,7 +779,11 @@ function init() {
   $('#hero').innerHTML = `<div class="h1">${creatureSVG('zitrino')}</div><div class="h2">${creatureSVG('schildi')}</div><div class="h3">${creatureSVG('rosalie')}</div><div class="h4">${creatureSVG('okti')}</div>`;
   $('#board').addEventListener('click', onBoardTap);
   document.querySelector('.shelf').addEventListener('click', e => { if (e.target.closest('.locked, .buy')) { Sfx.click(); offerBowl(); } });
-  $('#btn-play').addEventListener('click', () => { Sfx.unlock(); Sfx.click(); startLevel(save.level); });
+  $('#btn-play').addEventListener('click', async () => {
+    Sfx.unlock(); Sfx.click();
+    if (await checkForUpdate()) { applyUpdate(); return; }
+    startLevel(save.level);
+  });
   $('#btn-aqua').addEventListener('click', () => { Sfx.click(); openAquarium(); });
   $('#btn-aqua-back').addEventListener('click', () => { Sfx.click(); openMenu(); });
   $('#btn-aqua-play').addEventListener('click', () => { Sfx.click(); startLevel(save.level); });
@@ -773,10 +809,13 @@ function init() {
   window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { if (G && !$('#screen-game').hidden) commit(() => {}); }, 120); });
   document.addEventListener('pointerdown', () => Sfx.unlock(), { once: true });
   openMenu();
+  updateIfIdle();
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) updateIfIdle(); });
+  setInterval(updateIfIdle, 5 * 60 * 1000);
   if ('serviceWorker' in navigator && location.protocol === 'https:') {
     const hadController = !!navigator.serviceWorker.controller;
     navigator.serviceWorker.addEventListener('controllerchange', () => { if (hadController && !G) location.reload(); });
-    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {});
+    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(r => { swReg = r; r.update(); }).catch(() => {});
   }
 }
 document.addEventListener('DOMContentLoaded', init);
