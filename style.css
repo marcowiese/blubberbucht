@@ -490,3 +490,4 @@ button { font-family: inherit; cursor: pointer; border: 0; color: inherit; touch
   #screen-aquarium .tabs { grid-column: 2; grid-row: 2; align-self: start; padding: 0 0 calc(2 * var(--u)); }
   #screen-aquarium .album { margin-top: calc(13 * var(--u)); }
 }
+body.no-anim .bubble, body.no-anim .bubble .cr { transition: none !important; }

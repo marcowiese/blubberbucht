@@ -1,7 +1,7 @@
 // Blubberbucht – Spiellogik
 'use strict';
 
-const APP_VERSION = '1.12.1'; // nicht von Hand ändern: tools/release.sh <version>
+const APP_VERSION = '1.12.2'; // nicht von Hand ändern: tools/release.sh <version>
 const TRAY = 6, BOWLS = 4, BOWL_PRICE = 650, BOOSTER_PRICE = 200;
 const SAVE_KEY = 'blubberbucht-v1';
 const $ = s => document.querySelector(s);
@@ -278,6 +278,26 @@ function commit(fn, stagger = false) {
   if (G) dropEmpty();
   render();
   animateMoves(before, stagger);
+}
+// Beim Drehen/Größenändern: laufende Flüge sofort beenden (sonst bleiben Kopien stehen),
+// Spielfeld an das neue Format anpassen und ohne Animation neu zeichnen.
+function finishFlights() {
+  flying.forEach(f => { f.anim.cancel(); f.clone.remove(); });
+  flying.clear();
+  document.querySelectorAll('#fx .cr.flying').forEach(c => c.remove());
+  document.querySelectorAll('#screen-game .cr[data-uid]').forEach(el => el.style.visibility = '');
+}
+function onResize() {
+  if (!G || $('#screen-game').hidden) return;
+  finishFlights();
+  const board = $('#board');
+  if (board.clientWidth > 0) G.H = 100 * clamp(board.clientHeight / board.clientWidth, .85, 1.6);
+  relayout();
+  document.body.classList.add('no-anim');
+  render();
+  void document.body.offsetWidth;
+  requestAnimationFrame(() => requestAnimationFrame(() => document.body.classList.remove('no-anim')));
+  setTimeout(tutRender, 60);
 }
 function clearFx() {
   flying.forEach(f => f.anim.cancel()); flying.clear();
@@ -1049,7 +1069,8 @@ function init() {
     if (k === 'vib') vib(20);
   });
   let rt;
-  window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { if (G && !$('#screen-game').hidden) { commit(() => {}); setTimeout(tutRender, 450); } }, 120); });
+  window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(onResize, 150); });
+  window.addEventListener('orientationchange', () => { clearTimeout(rt); rt = setTimeout(onResize, 350); });
   document.addEventListener('pointerdown', () => Sfx.unlock(), { once: true });
   openMenu();
   updateIfIdle();
