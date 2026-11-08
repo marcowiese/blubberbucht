@@ -110,7 +110,7 @@ const pcShadow = (x, y, w) => `<ellipse cx="${x}" cy="${y}" rx="${w}" ry="${w * 
 // ---------- Die Postkarten ----------
 const POSTCARDS = [
   {
-    level: 10, title: 'Willkommen in der Blubberbucht',
+    level: 10, img: 'postcards/postkarte-10.webp', title: 'Willkommen in der Blubberbucht',
     text: 'Zitrino zeigt dir sein Zuhause: ein sonniges Riff voller Farben – und überall wollen Tiere sortiert werden!',
     svg: () => `${pcBase('p1', { top: '#9ff0ff', mid: '#35b4ec', bottom: '#1a78c4', reef: '#1d6a9a', seed: 4 })}
       ${pcSchool(122, 30, 12, '#0e4d80', 7, true)}${pcSchool(30, 22, 8, '#0e4d80', 9)}
@@ -127,7 +127,7 @@ const POSTCARDS = [
       ${pcBokeh(10, 12)}${pcVignette('p1')}`,
   },
   {
-    level: 20, title: 'Schildis Muschelgarten',
+    level: 20, img: 'postcards/postkarte-20.webp', title: 'Schildis Muschelgarten',
     text: 'Schildi pflegt einen geheimen Garten aus Muscheln. Wer leise ist, hört die Muscheln rauschen.',
     svg: () => `${pcBase('p2', { top: '#a8f4e0', mid: '#3cbcc0', bottom: '#1a7c9a', sand: '#f5e0aa', sandDark: '#cfa866', reef: '#1a6a70', seed: 12 })}
       ${pcSchool(40, 26, 10, '#0d5a66', 21)}
@@ -142,7 +142,7 @@ const POSTCARDS = [
       ${pcBokeh(8, 31)}${pcVignette('p2')}`,
   },
   {
-    level: 30, title: 'Die leuchtende Höhle',
+    level: 30, img: 'postcards/postkarte-30.webp', title: 'Die leuchtende Höhle',
     text: 'Tief unten leuchtet Qualli den Weg. Okti ist ein bisschen ängstlich – aber gemeinsam trauen sie sich hinein.',
     svg: () => `
       <defs><radialGradient id="p3bg" cx="45%" cy="45%" r="75%"><stop offset="0" stop-color="#4b47b8"/><stop offset=".55" stop-color="#211f6e"/><stop offset="1" stop-color="#0a0828"/></radialGradient>
@@ -163,7 +163,7 @@ const POSTCARDS = [
       <rect width="160" height="100" fill="url(#p3v)"/>`,
   },
   {
-    level: 40, title: 'Kalles Sandburg',
+    level: 40, img: 'postcards/postkarte-40.webp', title: 'Kalles Sandburg',
     text: 'Kalle baut die größte Sandburg der Bucht. Ob sie die nächste Strömung übersteht?',
     svg: () => `${pcBase('p4', { top: '#b6f0ff', mid: '#4ab8ee', bottom: '#2283cc', sand: '#f6dc9c', sandDark: '#d2a85c', reef: '#2a70a8', seed: 27 })}
       <defs><linearGradient id="p4c" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#f0cf86"/><stop offset=".6" stop-color="#e0b468"/><stop offset="1" stop-color="#c49448"/></linearGradient></defs>
@@ -184,7 +184,7 @@ const POSTCARDS = [
       ${pcBokeh(8, 47)}${pcVignette('p4')}`,
   },
   {
-    level: 50, title: 'Wal Willis Wellenritt',
+    level: 50, img: 'postcards/postkarte-50.webp', title: 'Wal Willis Wellenritt',
     text: 'Einmal im Jahr nimmt Wal Willi alle mit an die Oberfläche. Die Aussicht ist einfach riesig!',
     svg: () => `
       <defs><linearGradient id="p5sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffcf9a"/><stop offset=".6" stop-color="#ffa8bf"/><stop offset="1" stop-color="#ffd7a0"/></linearGradient>
@@ -205,7 +205,7 @@ const POSTCARDS = [
       ${pcBokeh(6, 59)}<rect width="160" height="100" fill="url(#p5v)"/>`,
   },
   {
-    level: 60, title: 'Sternennacht im Riff',
+    level: 60, img: 'postcards/postkarte-60.webp', title: 'Sternennacht im Riff',
     text: 'Wenn es dunkel wird, funkelt Stella mit den Sternen um die Wette. Gute Nacht, Blubberbucht!',
     svg: () => `${pcBase('p6', { top: '#22357e', mid: '#162a66', bottom: '#0a1640', sand: '#4a5a8a', sandDark: '#2a3460', rays: .07, caustics: .1, reef: '#0a1640', seed: 61 })}
       <defs><radialGradient id="p6moon" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#fff6c8" stop-opacity=".6"/><stop offset="1" stop-color="#fff6c8" stop-opacity="0"/></radialGradient>
