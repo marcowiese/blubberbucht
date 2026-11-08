@@ -1,7 +1,7 @@
 // Blubberbucht – Spiellogik
 'use strict';
 
-const APP_VERSION = '1.13.4'; // nicht von Hand ändern: tools/release.sh <version>
+const APP_VERSION = '1.14.0'; // nicht von Hand ändern: tools/release.sh <version>
 const TRAY = 6, BOWLS = 4, BOWL_PRICE = 650, BOOSTER_PRICE = 200;
 const SAVE_KEY = 'blubberbucht-v1';
 const $ = s => document.querySelector(s);
@@ -888,9 +888,22 @@ function tutRender() {
 function showPostcard(i, isNew = false, after = hideModal) {
   const pc = POSTCARDS[i];
   showModal(`<div class="ribbon">${isNew ? 'Neue Postkarte!' : 'Postkarte'}</div>
-    <div class="pc-big">${postcardSVG(pc)}</div>
-    <h2>${pc.title}</h2><p>${pc.text}</p>
-    <button class="btn green" data-act="close">${isNew ? 'Weiter' : 'Schließen'}</button>`, { close: after });
+    <div class="pc-big">${postcardArt(pc)}</div>
+    <h2>${pc.title}</h2>
+    <p class="pc-level">🏆 Erobert in Level ${pc.level}</p>
+    <p>${pc.text}</p>
+    <button class="btn blue" data-act="save">📥 In Fotos speichern</button>
+    <button class="btn green" data-act="close">${isNew ? 'Weiter' : 'Schließen'}</button>`, {
+    close: after,
+    save: async () => {
+      toast('Postkarte wird vorbereitet …');
+      try {
+        const r = await savePostcard(pc);
+        if (r === 'downloaded') toast('Postkarte gespeichert.');
+      } catch { toast('Speichern hat leider nicht geklappt.'); Sfx.error(); }
+    },
+  });
+  $('#modal .panel').classList.add('wide');
 }
 
 // ---------- Levelkarte: Level 1 an der Oberfläche, je weiter, desto tiefer ----------
@@ -995,7 +1008,7 @@ function renderAlbum() {
     al.innerHTML = POSTCARDS.map((pc, i) => {
       const open = save.level > pc.level;
       return `<button class="pcard ${open ? '' : 'locked'}" data-pc="${i}" ${open ? '' : 'disabled'}>${postcardSVG(pc)}
-        <b>${open ? pc.title : `Ab Level ${pc.level}`}</b>${open ? '' : '<i>🔒</i>'}</button>`;
+        <b>${open ? pc.title : `Ab Level ${pc.level}`}</b>${open ? `<small>🏆 Erobert in Level ${pc.level}</small>` : '<i>🔒</i>'}</button>`;
     }).join('') + `<p class="pc-more">Weitere Postkarten folgen …</p>`;
     return;
   }

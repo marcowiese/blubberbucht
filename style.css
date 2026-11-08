@@ -502,3 +502,20 @@ body.no-anim .bubble, body.no-anim .bubble .cr { transition: none !important; }
 @media (orientation: portrait) and (min-width: 600px) {
   :root { --colw: min(100vw, 49dvh, 720px); }
 }
+
+/* ---------- Postkarten groß ---------- */
+.album.cards { grid-template-columns: minmax(0, 1fr); gap: calc(5 * var(--u)); padding-top: calc(3 * var(--u)); }
+.pcard { padding: calc(2.4 * var(--u)) calc(2.4 * var(--u)) calc(3 * var(--u)); }
+.pcard .pc-svg, .pcard .pc-img { display: block; width: 100%; aspect-ratio: 16 / 10; border-radius: calc(1 * var(--u)); object-fit: cover; }
+.pcard b { font-size: calc(4.6 * var(--u)); margin-top: calc(2 * var(--u)); }
+.pcard small { display: block; font-size: calc(3.4 * var(--u)); color: #8a7350; margin-top: calc(.6 * var(--u)); }
+.pcard.locked .pc-svg, .pcard.locked .pc-img { filter: grayscale(1) brightness(.7) blur(3px); }
+.pcard i { font-size: calc(14 * var(--u)); }
+.panel.wide { width: min(96vw, calc(150 * var(--u)), 900px); }
+.pc-big .pc-svg, .pc-big .pc-img { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: cover; border-radius: calc(1 * var(--u)); }
+.pc-level { font-weight: 700 !important; color: #c27b00; margin: 0 0 calc(1 * var(--u)) !important; }
+@media (orientation: landscape) and (min-aspect-ratio: 5/4) {
+  #screen-aquarium .album.cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .panel.wide { width: min(70vw, 900px); max-height: 96%; }
+  .panel.wide .pc-big { width: 78%; margin-left: auto; margin-right: auto; }
+}
