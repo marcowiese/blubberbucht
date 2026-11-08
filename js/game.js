@@ -1,7 +1,7 @@
 // Blubberbucht – Spiellogik
 'use strict';
 
-const APP_VERSION = '1.9.0'; // nicht von Hand ändern: tools/release.sh <version>
+const APP_VERSION = '1.10.0'; // nicht von Hand ändern: tools/release.sh <version>
 const TRAY = 6, BOWLS = 4, BOWL_PRICE = 650, BOOSTER_PRICE = 200;
 const SAVE_KEY = 'blubberbucht-v1';
 const $ = s => document.querySelector(s);
@@ -10,7 +10,7 @@ const rand = n => Math.floor(Math.random() * n);
 const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = rand(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 
 // ---------- Speicherstand ----------
-const DEFAULTS = { level: 1, boosters: { net: 1, brush: 1, shuffle: 1 }, caught: {}, aquarium: [], sound: true, music: true, vib: true, seen: 3, coins: 100, stars: {}, tutorialDone: false };
+const DEFAULTS = { level: 1, boosters: { net: 1, brush: 1, shuffle: 1 }, caught: {}, aquarium: [], sound: true, music: true, vib: true, seen: 3, coins: 100, stars: {}, tutorialDone: false, daily: { last: '', streak: 0 } };
 let save = loadSave();
 function loadSave() {
   try {
@@ -830,6 +830,43 @@ function openMenu() {
   $('#menu-level').textContent = `Level ${save.level}`;
   renderCoins();
   showScreen('menu');
+  setTimeout(checkDaily, 500);
+}
+
+// ---------- Tägliche Belohnung: 7-Tage-Serie, wer einen Tag auslässt, beginnt wieder bei Tag 1 ----------
+const DAILY = [
+  { coins: 20 }, { coins: 30 }, { booster: 1 }, { coins: 40 }, { coins: 50 }, { booster: 1 }, { coins: 100, booster: 1 },
+];
+const dayStr = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+function checkDaily() {
+  if (!$('#screen-menu') || $('#screen-menu').hidden || !$('#modal').hidden) return;
+  const today = dayStr();
+  const d = save.daily || { last: '', streak: 0 };
+  if (d.last === today) return;
+  const y = new Date(); y.setDate(y.getDate() - 1);
+  const day = d.last === dayStr(y) ? (d.streak % 7) + 1 : 1;   // 1..7
+  const tile = (r, i) => {
+    const n = i + 1, cls = n < day ? 'got' : n === day ? 'today' : '';
+    const what = [r.coins ? `${COIN}<b>${r.coins}</b>` : '', r.booster ? `<span class="dbooster">🎁</span>` : ''].join('');
+    return `<div class="dtile ${cls} ${n === 7 ? 'big' : ''}"><small>Tag ${n}</small><div class="dwhat">${what}</div>${n < day ? '<i>✓</i>' : ''}</div>`;
+  };
+  showModal(`<div class="ribbon">Tägliche Belohnung</div>
+    <p>${day === 1 ? 'Schau jeden Tag vorbei – die Belohnung wird größer!' : `Tag ${day} in Folge – weiter so!`}</p>
+    <div class="daily">${DAILY.map(tile).join('')}</div>
+    <button class="btn green" data-act="claim">Abholen</button>`, {
+    claim: () => {
+      const r = DAILY[day - 1];
+      let got = [];
+      if (r.coins) { save.coins += r.coins; got.push(`+${r.coins} Münzen`); }
+      if (r.booster) {
+        const k = ['net', 'brush', 'shuffle'][rand(3)];
+        save.boosters[k] = (save.boosters[k] || 0) + 1; got.push(`+1 ${BOOSTER_INFO[k].name}`);
+      }
+      save.daily = { last: today, streak: day };
+      persist(); renderCoins(); hideModal(); Sfx.match(); confetti();
+      toast(got.join(' · '));
+    },
+  });
 }
 function openAquarium() {
   clearInterval(timerId);
@@ -920,7 +957,7 @@ function init() {
   document.addEventListener('pointerdown', () => Sfx.unlock(), { once: true });
   openMenu();
   updateIfIdle();
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) updateIfIdle(); });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { updateIfIdle(); checkDaily(); } });
   setInterval(updateIfIdle, 5 * 60 * 1000);
   if ('serviceWorker' in navigator && location.protocol === 'https:') {
     const hadController = !!navigator.serviceWorker.controller;

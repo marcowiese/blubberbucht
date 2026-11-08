@@ -457,3 +457,15 @@ button { font-family: inherit; cursor: pointer; border: 0; color: inherit; touch
 }
 .tut-box p { margin: 0; font-size: calc(4.6 * var(--u)); font-weight: 500; line-height: 1.35; }
 .tut-box .btn { margin-top: calc(3 * var(--u)); }
+
+/* ---------- Tägliche Belohnung ---------- */
+.daily { display: grid; grid-template-columns: repeat(4, 1fr); gap: calc(2 * var(--u)); margin: calc(3 * var(--u)) 0; }
+.dtile { position: relative; background: linear-gradient(#e6f4ff, #c7e6ff); border: calc(.6 * var(--u)) solid #8fd3ff; border-radius: calc(3 * var(--u)); padding: calc(1.6 * var(--u)) 0; }
+.dtile small { display: block; font-size: calc(3 * var(--u)); font-weight: 600; opacity: .8; }
+.dtile .dwhat { display: flex; align-items: center; justify-content: center; gap: calc(.8 * var(--u)); font-size: calc(3.8 * var(--u)); min-height: calc(7 * var(--u)); }
+.dtile .dwhat .coin { width: calc(5 * var(--u)); height: calc(5 * var(--u)); }
+.dtile .dbooster { font-size: calc(5 * var(--u)); }
+.dtile.big { grid-column: span 2; background: linear-gradient(#fff3c4, #ffd76a); border-color: #f2b33a; }
+.dtile.got { opacity: .55; }
+.dtile.got i { position: absolute; inset: 0; display: grid; place-items: center; font-style: normal; font-size: calc(8 * var(--u)); color: #2fb24a; }
+.dtile.today { border-color: #2fb24a; box-shadow: 0 0 0 calc(.8 * var(--u)) rgba(47,178,74,.35); animation: pulse .7s ease-in-out infinite alternate; }
