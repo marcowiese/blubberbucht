@@ -498,3 +498,7 @@ body.no-anim .bubble, body.no-anim .bubble .cr { transition: none !important; }
 @media (orientation: landscape) and (min-aspect-ratio: 5/4) {
   #screen-aquarium .album:not(.cards) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
+/* Tablet im Hochformat: Spalte so schmal, dass das Spielfeld (feste Höhe) die Breite ausfüllt */
+@media (orientation: portrait) and (min-width: 600px) {
+  :root { --colw: min(100vw, 49dvh, 720px); }
+}

@@ -1,7 +1,7 @@
 // Blubberbucht – Spiellogik
 'use strict';
 
-const APP_VERSION = '1.13.3'; // nicht von Hand ändern: tools/release.sh <version>
+const APP_VERSION = '1.13.4'; // nicht von Hand ändern: tools/release.sh <version>
 const TRAY = 6, BOWLS = 4, BOWL_PRICE = 650, BOOSTER_PRICE = 200;
 const SAVE_KEY = 'blubberbucht-v1';
 const $ = s => document.querySelector(s);
@@ -156,10 +156,11 @@ function crHTML(uid, style = '') {
   const c = G.cr[uid];
   return `<div class="cr" data-uid="${uid}" style="${style}">${creatureSVG(c.sp, `style="transform:rotate(${c.rot}deg)${c.flip ? ' scaleX(-1)' : ''}"`)}</div>`;
 }
+// Positionen (x, y, Größe) relativ zur Blase – so gewählt, dass die Tiere im Kreis bleiben
 const POS = {
-  1: [[.5, .5, .64]],
-  2: [[.35, .38, .54], [.63, .64, .54]],
-  3: [[.3, .35, .47], [.7, .37, .47], [.5, .7, .47]],
+  1: [[.5, .5, .6]],
+  2: [[.36, .4, .48], [.64, .62, .48]],
+  3: [[.32, .37, .42], [.68, .37, .42], [.5, .69, .42]],
 };
 
 function renderBoard() {
