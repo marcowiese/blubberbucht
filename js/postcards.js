@@ -220,6 +220,106 @@ const POSTCARDS = [
       ${pcU('stella', 80, 62, 42)}${pcU('luna', 124, 46, 22, true)}${pcU('zebrino', 40, 54, 20)}${pcU('schnecki', 112, 88, 14, true)}
       ${pcBokeh(8, 71, '#cfe0ff')}${pcVignette('p6')}`,
   },
+  {
+    level: 70, title: 'Seppis Seegraswald',
+    text: 'Seppi Seepferdchen kennt jeden Halm im Seegraswald. Heute zeigt er Garnele Gari sein Lieblingsversteck.',
+    svg: () => `${pcBase('p7', { top: '#b8f4d0', mid: '#46b89a', bottom: '#1d7a6a', sand: '#efd8a0', sandDark: '#c4a060', reef: '#1a5a4a', seed: 71 })}
+      ${pcKelp(10, 70, '#2a8a4a', 6)}${pcKelp(24, 84, '#3aa860', -5)}${pcKelp(40, 60, '#2a8a4a', 4)}${pcKelp(120, 76, '#3aa860', -6)}${pcKelp(136, 88, '#2a8a4a', 5)}${pcKelp(152, 64, '#46b56e', -4)}
+      ${pcSchool(84, 22, 9, '#0e5a4a', 72)}${pcShell(64, 95, '#ffe0b0', .9)}${pcStarfish(100, 95, '#ff9f2e', .9, 14)}
+      ${pcBubbles(16, 73)}
+      ${pcU('seppi', 74, 52, 44)}${pcU('gari', 104, 72, 20, true)}
+      ${pcBokeh(8, 74)}${pcVignette('p7')}`,
+  },
+  {
+    level: 80, title: 'Rocco und die große Strömung',
+    text: 'Wenn die Strömung kommt, breitet Rochen Rocco seine Flügel aus – und alle dürfen mitgleiten.',
+    svg: () => `${pcBase('p8', { top: '#a8e8ff', mid: '#3aa0e0', bottom: '#165ea8', reef: '#1a5a8a', seed: 81 })}
+      <g stroke="#fff" stroke-width=".7" fill="none" opacity=".35"><path d="M0 30 Q40 22 80 30 T160 28"/><path d="M0 44 Q40 36 80 44 T160 42"/><path d="M0 58 Q40 50 80 58 T160 56"/></g>
+      ${pcSchool(40, 36, 14, '#0e4a80', 82)}${pcRock(140, 88, 18, 8, '#7a8aa0')}${pcFan(146, 82, '#ff8a5a')}${pcBrain(22, 89, 5, '#c35bd6')}
+      ${pcBubbles(14, 83)}
+      ${pcU('rocco', 82, 50, 56)}${pcU('limo', 122, 34, 18, true)}${pcU('blaubeer', 36, 66, 16)}
+      ${pcBokeh(8, 84)}${pcVignette('p8')}`,
+  },
+  {
+    level: 90, title: 'Mias Perlenschatz',
+    text: 'Muschel Mia hütet die schönste Perle der Bucht. Igel Igor passt auf, dass niemand schummelt.',
+    svg: () => `${pcBase('p9', { top: '#c8e8ff', mid: '#5a9ae0', bottom: '#2a58a8', sand: '#f2dcaa', sandDark: '#c8a464', reef: '#2a4a8a', seed: 91 })}
+      <defs><radialGradient id="p9g" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#fff" stop-opacity=".8"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient></defs>
+      ${pcRock(30, 88, 18, 9, '#8a7aa0')}${pcRock(132, 87, 22, 10, '#7a8aa0')}${pcAnemone(140, 82, '#ffa0c8')}${pcCoral(20, 90, '#ff6f8f')}
+      <circle cx="80" cy="64" r="24" fill="url(#p9g)"/>
+      ${pcBubbles(12, 93)}
+      ${pcU('mia', 80, 70, 40)}${pcU('igor', 116, 78, 22)}${pcU('rosalie', 40, 40, 18)}
+      ${pcBokeh(10, 94, '#fff6e0')}${pcVignette('p9')}`,
+  },
+  {
+    level: 100, title: 'Fluffis Regenbogenriff',
+    text: 'Level 100! Wo Fluffi Einhornfisch schwimmt, leuchtet das Riff in allen Farben des Regenbogens.',
+    svg: () => `${pcBase('p10', { top: '#ffe0f4', mid: '#9ab8ff', bottom: '#5a6ad8', sand: '#ffe8c8', sandDark: '#e0b0c0', reef: '#6a4aa8', seed: 101 })}
+      <g fill="none" stroke-width="3" opacity=".45" stroke-linecap="round">${['#ff6f8f', '#ffb84a', '#fff36b', '#7be05a', '#4fb8ff', '#a271ff'].map((c, i) => `<path d="M10 ${78 - i * 3} Q80 ${10 - i * 3} 150 ${78 - i * 3}" stroke="${c}"/>`).join('')}</g>
+      ${pcFan(16, 84, '#ff5a8a')}${pcFan(146, 84, '#a271ff')}${pcBrain(40, 90, 5, '#ffb84a')}${pcBrain(120, 90, 5, '#4fd0c0')}${pcAnemone(80, 94, '#ff9ad5')}
+      ${pcBubbles(18, 103)}
+      ${pcU('fluffi', 80, 50, 46)}${pcU('qualli', 128, 36, 18)}${pcU('zitrino', 34, 40, 16)}
+      ${pcBokeh(14, 104, '#ffe8ff')}${pcVignette('p10')}`,
+  },
+  {
+    level: 110, title: 'Brunos Drachenhöhle',
+    text: 'Tief unter dem Riff wohnt Blubbdrache Bruno. Er sieht wild aus – aber er backt die besten Algenkekse.',
+    svg: () => `
+      <defs><radialGradient id="p11bg" cx="55%" cy="55%" r="75%"><stop offset="0" stop-color="#ff9a4a"/><stop offset=".45" stop-color="#8a2a3a"/><stop offset="1" stop-color="#1a0814"/></radialGradient>
+      <radialGradient id="p11v" cx="50%" cy="50%" r="70%"><stop offset=".55" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".6"/></radialGradient></defs>
+      <rect width="160" height="100" fill="url(#p11bg)"/>
+      <path d="M0 0 H160 V20 Q130 32 110 18 Q90 30 70 18 Q46 32 26 18 Q12 26 0 16Z" fill="#2a0a14"/>
+      <path d="M0 100 H160 V84 Q130 76 108 84 Q84 74 60 84 Q34 76 0 86Z" fill="#2a0a14"/>
+      ${[[22, 84], [44, 88], [118, 86], [140, 82]].map(([x, y]) => `<g><path d="M${x - 4} ${y} l4 -12 l4 12z" fill="#ff7a3a" opacity=".9"/><circle cx="${x}" cy="${y - 6}" r="8" fill="#ffb84a" opacity=".2"/></g>`).join('')}
+      ${pcBubbles(12, 113, [10, 25, 140, 50])}
+      ${pcU('bruno', 78, 54, 52)}${pcU('kurt', 128, 40, 18, true)}
+      <rect width="160" height="100" fill="url(#p11v)"/>`,
+  },
+  {
+    level: 120, title: 'Krapfis süßes Fest',
+    text: 'Krapfi Donutfisch feiert Geburtstag! Kaugummi-Kiki bringt die größte Blase mit, die die Bucht je gesehen hat.',
+    svg: () => `${pcBase('p12', { top: '#ffe8f4', mid: '#ffb3d9', bottom: '#d870b0', sand: '#fff0d8', sandDark: '#e8b8b0', reef: '#a85a90', seed: 121 })}
+      ${Array.from({ length: 40 }, (_, i) => { const r = pcRand(130 + i); const cols = ['#fff36b', '#6fe0ff', '#7be05a', '#ffffff', '#a271ff', '#ff6f8f']; return `<rect x="${(r() * 160).toFixed(1)}" y="${(r() * 80).toFixed(1)}" width="2.4" height="1" rx=".5" fill="${cols[i % 6]}" transform="rotate(${(r() * 180).toFixed(0)} ${(r() * 160).toFixed(1)} ${(r() * 80).toFixed(1)})"/>`; }).join('')}
+      <g><path d="M120 18 v24" stroke="#fff" stroke-width=".6"/><ellipse cx="120" cy="14" rx="7" ry="8" fill="#ff6f8f"/><path d="M40 22 v20" stroke="#fff" stroke-width=".6"/><ellipse cx="40" cy="18" rx="6" ry="7" fill="#6fe0ff"/></g>
+      ${pcBubbles(14, 123)}
+      ${pcU('krapfi', 72, 56, 46)}${pcU('kiki', 120, 62, 28, true)}${pcU('rosalie', 30, 66, 18)}
+      ${pcBokeh(12, 124, '#fff0f8')}${pcVignette('p12')}`,
+  },
+  {
+    level: 130, title: 'König Krabbos Muschelthron',
+    text: 'Einmal im Jahr hält König Krabbo Hof. Wer drei gleiche Tiere sortiert, darf sich etwas wünschen.',
+    svg: () => `${pcBase('p13', { top: '#fff2c0', mid: '#5ab0e0', bottom: '#1d6ab0', sand: '#f6dc9c', sandDark: '#d2a85c', reef: '#2a5a8a', seed: 131 })}
+      <g>${pcRock(80, 84, 30, 12, '#c8a0e0')}<path d="M58 80 Q80 40 102 80Z" fill="#f6c9ff" stroke="#b08ac0" stroke-width=".8"/>${[-14, -7, 0, 7, 14].map(d => `<path d="M80 80 L${80 + d * 1.4} ${50 + Math.abs(d)}" stroke="#b08ac0" stroke-width=".6"/>`).join('')}</g>
+      ${pcShell(40, 94, '#ffe0b0', 1.1)}${pcShell(122, 95, '#ffc2d8', 1)}${pcStarfish(140, 92, '#ff9f2e', 1, 12)}${pcStarfish(22, 93, '#ffcf4a', .8, -14)}
+      ${pcBubbles(14, 133)}
+      ${pcU('krabbo', 80, 62, 40)}${pcU('glitzi', 128, 42, 22, true)}${pcU('seppi', 34, 50, 18)}
+      ${pcBokeh(12, 134, '#fff6c0')}${pcVignette('p13')}`,
+  },
+  {
+    level: 140, title: 'Wolkis Himmelsmeer',
+    text: 'Ganz oben, wo das Meer den Himmel berührt, schwebt Wolki Wolkenqualle – und lässt es Bläschen regnen.',
+    svg: () => `
+      <defs><linearGradient id="p14" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d8f0ff"/><stop offset=".5" stop-color="#8ad0ff"/><stop offset="1" stop-color="#3a90e0"/></linearGradient>
+      <radialGradient id="p14v" cx="50%" cy="45%" r="75%"><stop offset=".62" stop-color="#001030" stop-opacity="0"/><stop offset="1" stop-color="#001030" stop-opacity=".35"/></radialGradient></defs>
+      <rect width="160" height="100" fill="url(#p14)"/>
+      <path d="M0 22 Q10 19 20 22 T40 22 T60 22 T80 22 T100 22 T120 22 T140 22 T160 22" stroke="#fff" stroke-width="1" fill="none" opacity=".9"/>
+      <g fill="#fff" opacity=".8"><ellipse cx="28" cy="10" rx="12" ry="4"/><ellipse cx="120" cy="8" rx="16" ry="4.5"/></g>
+      <g fill="none" stroke-width="2.4" opacity=".5" stroke-linecap="round">${['#ff6f8f', '#ffcf2e', '#7be05a', '#4fb8ff', '#a271ff'].map((c, i) => `<path d="M20 ${96 - i * 3} Q80 ${44 - i * 3} 140 ${96 - i * 3}" stroke="${c}"/>`).join('')}</g>
+      ${pcBubbles(26, 143, [0, 30, 160, 70])}
+      ${pcU('wolki', 80, 52, 48)}${pcU('aqua', 128, 70, 18, true)}${pcU('luna', 32, 72, 18)}
+      ${pcBokeh(10, 144)}<rect width="160" height="100" fill="url(#p14v)"/>`,
+  },
+  {
+    level: 150, title: 'Stupsis Sternschnuppennacht',
+    text: 'Level 150 – du bist eine Legende der Blubberbucht! Stupsi Sternschnuppe fliegt eine Ehrenrunde nur für dich.',
+    svg: () => `${pcBase('p15', { top: '#2a2a7a', mid: '#1a1a5a', bottom: '#0a0a30', sand: '#4a4a8a', sandDark: '#2a2a5a', rays: .06, caustics: .08, reef: '#0a0a30', seed: 151 })}
+      ${Array.from({ length: 30 }, (_, i) => { const r = pcRand(160 + i); return `<circle cx="${(r() * 160).toFixed(1)}" cy="${(2 + r() * 40).toFixed(1)}" r="${(.3 + r() * .7).toFixed(2)}" fill="#fff" opacity="${(.5 + r() * .5).toFixed(2)}"/>`; }).join('')}
+      <path d="M150 6 L96 38" stroke="#fff6a8" stroke-width="1.4" opacity=".7" stroke-linecap="round"/><path d="M140 4 L100 30" stroke="#fff" stroke-width=".6" opacity=".5"/>
+      ${pcFan(18, 84, '#7a5ad6')}${pcCoral(140, 92, '#d65a9a')}${pcAnemone(110, 93, '#c08ae6')}
+      ${pcBubbles(10, 153)}
+      ${pcU('stupsi', 84, 44, 40)}${pcU('gustav', 40, 66, 24)}${pcU('robo', 126, 70, 22, true)}${pcU('stella', 66, 86, 16)}
+      ${pcBokeh(10, 154, '#cfe0ff')}${pcVignette('p15')}`,
+  },
 ];
 
 function postcardArt(pc) {
