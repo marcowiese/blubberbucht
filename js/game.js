@@ -1,7 +1,7 @@
 // Blubberbucht – Spiellogik
 'use strict';
 
-const APP_VERSION = '1.5.0'; // bei jeder Veröffentlichung erhöhen (auch CACHE in sw.js)
+const APP_VERSION = '1.5.1'; // bei jeder Veröffentlichung erhöhen (auch CACHE in sw.js)
 const TRAY = 6, BOWLS = 4, BOWL_PRICE = 650, BOOSTER_PRICE = 200;
 const SAVE_KEY = 'blubberbucht-v1';
 const $ = s => document.querySelector(s);
@@ -47,10 +47,8 @@ function genLevel(L) {
   const board = $('#board');
   const A = clamp(board.clientHeight / Math.max(1, board.clientWidth), .85, 1.6);
   const H = 100 * A, T = p.T;
-  // Blasengrößen (1–3 Tiere), zusammen genau T*3 Tiere
-  const caps = []; let total = 0;
-  while (total < T * 3) { const c = Math.min(T * 3 - total, [1, 2, 2, 3, 3, 3][rand(6)]); caps.push(c); total += c; }
-  shuffle(caps);
+  // jede Blase startet mit genau 3 Tieren
+  const caps = Array(T).fill(3);
   const bubbles = caps.map((cap, i) => ({ id: i, cap, items: [], r: R0 * [0, .74, .88, 1][cap], jx: (Math.random() - .5) * 4, x: 50, y: -50 }));
   // Spalten: Index 0 = ganz unten, weiter oben warten Blasen außerhalb des Bildes
   const cols = [[], [], []];
@@ -764,6 +762,10 @@ function init() {
   window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { if (G && !$('#screen-game').hidden) commit(() => {}); }, 120); });
   document.addEventListener('pointerdown', () => Sfx.unlock(), { once: true });
   openMenu();
-  if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+  if ('serviceWorker' in navigator && location.protocol === 'https:') {
+    const hadController = !!navigator.serviceWorker.controller;
+    navigator.serviceWorker.addEventListener('controllerchange', () => { if (hadController && !G) location.reload(); });
+    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {});
+  }
 }
 document.addEventListener('DOMContentLoaded', init);
