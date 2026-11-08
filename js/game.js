@@ -1,7 +1,7 @@
 // Blubberbucht – Spiellogik
 'use strict';
 
-const APP_VERSION = '1.16.0'; // nicht von Hand ändern: tools/release.sh <version>
+const APP_VERSION = '1.17.0'; // nicht von Hand ändern: tools/release.sh <version>
 const TRAY = 6, BOWLS = 4, BOWL_PRICE = 650, BOOSTER_PRICE = 200;
 const SAVE_KEY = 'blubberbucht-v1';
 const $ = s => document.querySelector(s);
@@ -25,7 +25,7 @@ const vib = ms => { if (canVibrate && save.vib) { try { navigator.vibrate(ms); }
 
 // ---------- Level-Aufbau ----------
 // Schwierigkeit: jedes 5. Level „Schwer“, jedes 10. „Extrem schwer“
-const DIFF = { s: .5, smax: 6, sl: 60, t0: 9, t: .35, tmax: 18, hardS: 2, hardT: 3, extS: 3, extT: 5 };
+const DIFF = { s: .5, smax: 5, sl: 60, t0: 9, t: .35, tmax: 18, hardS: 1, hardT: 3, extS: 2, extT: 3 };
 // Neue Art alle 3 Level (Level 1: 3 Arten). Fantasietiere kommen ab ca. Level 67.
 const unlockedCount = L => Math.min(SPECIES.length, 3 + Math.floor((L - 1) / 3));
 const tierOf = L => L >= 10 && L % 10 === 0 ? 2 : L >= 5 && L % 5 === 0 ? 1 : 0;
@@ -41,7 +41,7 @@ function levelParams(L) {
   };
 }
 
-const COLS_X = [17.5, 50, 82.5], R0 = 16.2, PLAY_H = 130;
+const COLS_X = [17.5, 50, 82.5], R0 = 17.4, PLAY_H = 102;
 
 let G = null;
 
@@ -87,10 +87,10 @@ function isBlocked(b) { return b.y < b.r * .55; }
 function relayout() {
   const byId = new Map(G.bubbles.map(b => [b.id, b]));
   G.cols.forEach((col, c) => {
-    let y = G.H - (c === 1 ? R0 * .95 : 1.5), prev = null;
+    let y = G.H - (c === 1 ? R0 * .9 : 1), prev = null;
     for (const id of col) {
       const b = byId.get(id);
-      y -= prev ? (prev.r + b.r) * .94 : b.r;
+      y -= prev ? (prev.r + b.r) * .84 : b.r;   // Blasen überlappen leicht, wie aufgetürmt
       b.x = clamp(COLS_X[c] + b.jx, b.r, 100 - b.r); b.y = y;
       prev = b;
     }
@@ -158,9 +158,9 @@ function crHTML(uid, style = '') {
 }
 // Positionen (x, y, Größe) relativ zur Blase – so gewählt, dass die Tiere im Kreis bleiben
 const POS = {
-  1: [[.5, .5, .6]],
-  2: [[.36, .4, .48], [.64, .62, .48]],
-  3: [[.32, .37, .42], [.68, .37, .42], [.5, .69, .42]],
+  1: [[.5, .5, .66]],
+  2: [[.35, .39, .54], [.65, .63, .54]],
+  3: [[.31, .35, .48], [.69, .37, .48], [.5, .7, .48]],
 };
 
 function renderBoard() {

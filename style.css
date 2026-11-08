@@ -500,7 +500,7 @@ body.no-anim .bubble, body.no-anim .bubble .cr { transition: none !important; }
 }
 /* Tablet im Hochformat: Spalte so schmal, dass das Spielfeld (feste Höhe) die Breite ausfüllt */
 @media (orientation: portrait) and (min-width: 600px) {
-  :root { --colw: min(100vw, 49dvh, 720px); }
+  :root { --colw: min(100vw, 58dvh, 720px); }
 }
 
 /* ---------- Postkarten groß ---------- */
@@ -518,4 +518,18 @@ body.no-anim .bubble, body.no-anim .bubble .cr { transition: none !important; }
   #screen-aquarium .album.cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .panel.wide { width: min(70vw, 900px); max-height: 96%; }
   .panel.wide .pc-big { width: 78%; margin-left: auto; margin-right: auto; }
+}
+
+/* ---------- Kompaktere Leisten, damit das Spielfeld mehr Platz bekommt ---------- */
+.hud { min-height: calc(13 * var(--u)); padding-top: calc(1.6 * var(--u)); padding-bottom: calc(.6 * var(--u)); }
+.bowls { height: calc(18 * var(--u)); }
+.card { height: calc(12 * var(--u)); }
+.tray { margin-top: calc(2 * var(--u)); }
+.boosters { padding: calc(2 * var(--u)) 0 calc(2.6 * var(--u)); }
+.booster { width: calc(16.5 * var(--u)); height: calc(16.5 * var(--u)); border-radius: calc(5 * var(--u)); }
+.help-btn { bottom: calc(3 * var(--u)); }
+.board { margin-left: calc(1 * var(--u)); margin-right: calc(1 * var(--u)); }
+@media (orientation: landscape) and (min-aspect-ratio: 5/4) {
+  /* Spielfeld-Rahmen so hoch wie das Spielfeld selbst */
+  #screen-game .board { align-self: center; height: auto; aspect-ratio: 100 / 102; max-height: 100%; width: 100%; }
 }
