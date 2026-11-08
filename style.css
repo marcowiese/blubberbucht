@@ -469,3 +469,4 @@ button { font-family: inherit; cursor: pointer; border: 0; color: inherit; touch
 .dtile.got { opacity: .55; }
 .dtile.got i { position: absolute; inset: 0; display: grid; place-items: center; font-style: normal; font-size: calc(8 * var(--u)); color: #2fb24a; }
 .dtile.today { border-color: #2fb24a; box-shadow: 0 0 0 calc(.8 * var(--u)) rgba(47,178,74,.35); animation: pulse .7s ease-in-out infinite alternate; }
+.xfer { width: 100%; margin-top: calc(4 * var(--u)); border-radius: calc(3 * var(--u)); border: calc(.5 * var(--u)) solid #8fd3ff; padding: calc(2 * var(--u)); font: 600 calc(3.4 * var(--u)) ui-monospace, monospace; color: #1f4f8f; background: #f4fbff; resize: none; user-select: text; -webkit-user-select: text; }

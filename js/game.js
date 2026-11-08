@@ -1,7 +1,7 @@
 // Blubberbucht – Spiellogik
 'use strict';
 
-const APP_VERSION = '1.10.1'; // nicht von Hand ändern: tools/release.sh <version>
+const APP_VERSION = '1.11.0'; // nicht von Hand ändern: tools/release.sh <version>
 const TRAY = 6, BOWLS = 4, BOWL_PRICE = 650, BOOSTER_PRICE = 200;
 const SAVE_KEY = 'blubberbucht-v1';
 const $ = s => document.querySelector(s);
@@ -696,11 +696,12 @@ function openSettings() {
     </div>
     ${inGame ? `<button class="btn blue" data-act="tutorial">❓ Anleitung zeigen</button><button class="btn orange" data-act="restart">Level neu starten</button><button class="btn ghost" data-act="menu">Hauptmenü</button>` : ''}
     <button class="btn green" data-act="close">Weiter</button>
-    ${inGame ? '' : `<button class="btn link" data-act="reset">Fortschritt zurücksetzen</button>`}
+    ${inGame ? '' : `<button class="btn blue" data-act="transfer">💾 Spielstand übertragen</button><button class="btn link" data-act="reset">Fortschritt zurücksetzen</button>`}
     <p class="version">Blubberbucht v${APP_VERSION} · von Hase Games</p>`, {
     close: hideModal,
     restart: () => startLevel(G.level),
     tutorial: () => { hideModal(); tutStart(); },
+    transfer: () => openTransfer(draw),
     menu: () => { hideModal(); openMenu(); },
     reset: () => showModal(`<div class="ribbon red">Wirklich?</div><p>Level, Booster und Aquarium werden gelöscht.</p>
       <button class="btn orange" data-act="yes">Ja, zurücksetzen</button><button class="btn green" data-act="no">Abbrechen</button>`, {
@@ -709,6 +710,59 @@ function openSettings() {
     }),
   });
   draw();
+}
+
+// ---------- Spielstand übertragen (Code, ganz ohne Server oder Konto) ----------
+const b64u = bytes => btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const unb64u = str => Uint8Array.from(atob(str.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+async function pipe(bytes, stream) { return new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(stream)).arrayBuffer()); }
+async function exportCode() {
+  const data = { ...save }; delete data.daily;            // tägliche Serie bleibt am Gerät
+  const raw = new TextEncoder().encode(JSON.stringify(data));
+  if (typeof CompressionStream === 'function') return 'BB2-' + b64u(await pipe(raw, new CompressionStream('deflate-raw')));
+  return 'BB1-' + b64u(raw);
+}
+async function importCode(code) {
+  code = code.trim().replace(/\s+/g, '');
+  const [tag, body] = [code.slice(0, 4), code.slice(4)];
+  let bytes = unb64u(body);
+  if (tag === 'BB2-') bytes = await pipe(bytes, new DecompressionStream('deflate-raw'));
+  else if (tag !== 'BB1-') throw new Error('format');
+  const data = JSON.parse(new TextDecoder().decode(bytes));
+  if (typeof data.level !== 'number' || typeof data.coins !== 'number') throw new Error('inhalt');
+  return data;
+}
+function openTransfer(back) {
+  showModal(`<div class="ribbon">Spielstand übertragen</div>
+    <p class="small">So nimmst du deinen Fortschritt auf ein anderes Gerät mit: Code hier kopieren und auf dem anderen Gerät unter „Code eingeben“ einfügen.</p>
+    <button class="btn green" data-act="copy">📋 Code kopieren</button>
+    <textarea id="xfer-code" class="xfer" placeholder="Code vom anderen Gerät hier einfügen …" rows="3"></textarea>
+    <button class="btn orange" data-act="load">Code eingeben</button>
+    <button class="btn ghost" data-act="back">Zurück</button>`, {
+    back,
+    copy: async () => {
+      const code = await exportCode();
+      const ta = $('#xfer-code'); ta.value = code;
+      try { await navigator.clipboard.writeText(code); toast('Code kopiert – jetzt auf dem anderen Gerät einfügen.'); }
+      catch { ta.select(); toast('Code markiert – bitte kopieren.'); }
+      if (navigator.share && /iPhone|iPad|Android/i.test(navigator.userAgent)) navigator.share({ title: 'Blubberbucht-Spielstand', text: code }).catch(() => {});
+    },
+    load: async () => {
+      let data;
+      try { data = await importCode($('#xfer-code').value); }
+      catch { toast('Der Code ist ungültig.'); Sfx.error(); return; }
+      showModal(`<div class="ribbon red">Spielstand ersetzen?</div>
+        <p>Gefundener Spielstand: <b>Level ${data.level}</b>, ${data.coins} Münzen.</p>
+        <p class="small">Der Fortschritt auf diesem Gerät wird dabei überschrieben.</p>
+        <button class="btn orange" data-act="yes">Ja, übernehmen</button><button class="btn green" data-act="no">Abbrechen</button>`, {
+        yes: () => {
+          save = { ...DEFAULTS, ...data, boosters: { ...DEFAULTS.boosters, ...(data.boosters || {}) }, stars: { ...(data.stars || {}) }, daily: save.daily };
+          persist(); hideModal(); Sfx.enabled = save.sound; Sfx.music = save.music; openMenu(); toast('Spielstand übernommen!');
+        },
+        no: () => openTransfer(back),
+      });
+    },
+  });
 }
 
 // ---------- Update-Prüfung ----------
