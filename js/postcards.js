@@ -262,7 +262,7 @@ const POSTCARDS = [
       ${pcBokeh(14, 104, '#ffe8ff')}${pcVignette('p10')}`,
   },
   {
-    level: 110, title: 'Brunos Drachenhöhle',
+    level: 110, img: 'postcards/postkarte-110.jpg', title: 'Brunos Drachenhöhle',
     text: 'Tief unter dem Riff wohnt Blubbdrache Bruno. Er sieht wild aus – aber er backt die besten Algenkekse.',
     svg: () => `
       <defs><radialGradient id="p11bg" cx="55%" cy="55%" r="75%"><stop offset="0" stop-color="#ff9a4a"/><stop offset=".45" stop-color="#8a2a3a"/><stop offset="1" stop-color="#1a0814"/></radialGradient>
