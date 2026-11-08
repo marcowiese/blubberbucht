@@ -345,3 +345,6 @@ button { font-family: inherit; cursor: pointer; border: 0; color: inherit; touch
 .reward.coins { color: #c27b00; }
 .reward.coins .coin { width: 9cqw; height: 9cqw; }
 .btn .coin { width: 1.1em; height: 1.1em; }
+.tier { display: inline-block; margin-top: 1cqw; padding: .3cqw 2.4cqw; border-radius: 3cqw; font-weight: 700; font-size: 3.6cqw; }
+.tier.t1 { background: linear-gradient(#ffc24a, #f27a1e); }
+.tier.t2 { background: linear-gradient(#ff7a7a, #d8252b); animation: pulse .8s ease-in-out infinite alternate; }

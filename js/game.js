@@ -1,7 +1,7 @@
 // Blubberbucht – Spiellogik
 'use strict';
 
-const TRAY = 6, BOWLS = 4, BOWL_PRICE = 650, BOOSTER_PRICE = 180;
+const TRAY = 6, BOWLS = 4, BOWL_PRICE = 650, BOOSTER_PRICE = 200;
 const SAVE_KEY = 'blubberbucht-v1';
 const $ = s => document.querySelector(s);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -9,7 +9,7 @@ const rand = n => Math.floor(Math.random() * n);
 const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = rand(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 
 // ---------- Speicherstand ----------
-const DEFAULTS = { level: 1, boosters: { net: 2, brush: 2, shuffle: 2 }, caught: {}, aquarium: [], sound: true, music: true, vib: true, seen: 3, coins: 150, bowlsOpen: 2 };
+const DEFAULTS = { level: 1, boosters: { net: 1, brush: 1, shuffle: 1 }, caught: {}, aquarium: [], sound: true, music: true, vib: true, seen: 3, coins: 100 };
 let save = loadSave();
 function loadSave() {
   try {
@@ -21,13 +21,19 @@ function persist() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save));
 const vib = ms => { if (save.vib && navigator.vibrate) navigator.vibrate(ms); };
 
 // ---------- Level-Aufbau ----------
-const DIFF = { s: 1, smax: 11, t0: 9, t: .8 };
+// Schwierigkeit: jedes 5. Level „Schwer“, jedes 10. „Extrem schwer“
+const DIFF = { s: .5, smax: 5, sl: 60, t0: 9, t: .35, tmax: 18, hardS: 1, hardT: 3, extS: 2, extT: 5 };
 const unlockedCount = L => Math.min(SPECIES.length, 3 + Math.floor((L - 1) * .6));
+const tierOf = L => L >= 10 && L % 10 === 0 ? 2 : L >= 5 && L % 5 === 0 ? 1 : 0;
+const TIER_NAME = ['', 'Schwer', 'Extrem schwer'];
 function levelParams(L) {
+  const tier = tierOf(L);
+  const baseS = Math.min(3 + Math.floor(L * DIFF.s), DIFF.smax + Math.floor(L / DIFF.sl));
   return {
-    T: Math.min(DIFF.t0 + Math.floor(L * DIFF.t), 26),
-    S: Math.min(unlockedCount(L), 3 + Math.floor(L * DIFF.s), DIFF.smax),
-    timed: L >= 6 && L % 6 === 0,
+    tier,
+    T: Math.min(DIFF.t0 + Math.floor(L * DIFF.t), DIFF.tmax) + [0, DIFF.hardT, DIFF.extT][tier],
+    S: Math.min(unlockedCount(L), baseS + [0, DIFF.hardS, DIFF.extS][tier]),
+    timed: L >= 6 && L % 6 === 0 && tier === 0,
   };
 }
 
@@ -66,8 +72,8 @@ function genLevel(L) {
   const counts = {}; Object.values(cr).forEach(c => counts[c.sp] = (counts[c.sp] || 0) + 1);
   const q = []; for (const sp in counts) for (let i = 0; i < counts[sp] / 3; i++) q.push(sp);
   return { level: L, H, bubbles, cols, cr, nextB: bubbles.length, total: n, collected: 0, species: chosen, queue: shuffle(q),
-    bowls: Array.from({ length: BOWLS }, (_, i) => ({ sp: null, items: [], completing: false, locked: i >= save.bowlsOpen })),
-    tray: [], pending: 0, over: false, paused: false, timed: p.timed,
+    bowls: Array.from({ length: BOWLS }, (_, i) => ({ sp: null, items: [], completing: false, locked: i >= 2 })),
+    tray: [], pending: 0, over: false, paused: false, timed: p.timed, tier: p.tier,
     timeLeft: p.timed ? Math.ceil(n * 2.4) + 15 : 0, extraTime: false, usedBoosters: 0 };
 }
 
@@ -201,6 +207,7 @@ function renderHUD() {
   $('#cnt').textContent = `${G.collected}/${G.total}`;
   renderCoins();
   $('#lvl-title').textContent = `Level ${G.level}`;
+  const tg = $('#lvl-tier'); tg.hidden = !G.tier; tg.textContent = TIER_NAME[G.tier]; tg.className = 'tier t' + G.tier;
   for (const k of ['net', 'brush', 'shuffle']) {
     const b = document.querySelector(`[data-booster="${k}"]`);
     b.querySelector('.badge').textContent = save.boosters[k] || '+';
@@ -405,13 +412,12 @@ function offerBowl() {
   if (idx < 0) return;
   showModal(`<div class="ribbon">Aquarium freischalten</div>
     <div class="hero-bowl">${BOWL_SVG}<div class="lock">🔒</div></div>
-    <p>Ein zusätzliches Aquarium gibt dir dauerhaft mehr Platz zum Sortieren.</p>
+    <p>Ein zusätzliches Aquarium gibt dir in diesem Level mehr Platz zum Sortieren.</p>
     <button class="btn orange" data-act="buy">Kaufen für ${COIN} ${BOWL_PRICE}</button>
     <button class="btn ghost" data-act="close">Später</button>`, {
     close: hideModal,
     buy: () => {
       if (!spend(BOWL_PRICE)) return noCoins(BOWL_PRICE);
-      save.bowlsOpen = Math.min(BOWLS, save.bowlsOpen + 1); persist();
       hideModal();
       commit(() => { G.bowls[idx].locked = false; settle(); });
       const el = document.querySelector(`[data-bowl="${idx}"]`);
@@ -424,12 +430,12 @@ function offerBooster(k) {
   showModal(`<div class="ribbon">${BOOSTER_INFO[k].name}</div>
     <div class="ricon big">${BOOSTER_ICONS[k]}</div>
     <p>${BOOSTER_INFO[k].desc}</p>
-    <button class="btn orange" data-act="buy">3 Stück für ${COIN} ${BOOSTER_PRICE}</button>
+    <button class="btn orange" data-act="buy">Kaufen für ${COIN} ${BOOSTER_PRICE}</button>
     <button class="btn ghost" data-act="close">Abbrechen</button>`, {
     close: hideModal,
     buy: () => {
       if (!spend(BOOSTER_PRICE)) return noCoins(BOOSTER_PRICE);
-      save.boosters[k] = (save.boosters[k] || 0) + 3; persist();
+      save.boosters[k] = (save.boosters[k] || 0) + 1; persist();
       hideModal(); renderHUD(); Sfx.booster();
     },
   });
@@ -535,6 +541,12 @@ function startLevel(L) {
         <h2>${sp.name}</h2>
         <p>${sp.name} schwimmt ab jetzt in den Blasen mit.</p>
         <button class="btn green" data-act="close">Los geht's!</button>`, { close: hideModal }), 500);
+    } else if (G.tier) {
+      setTimeout(() => showModal(`
+        <div class="ribbon ${G.tier === 2 ? 'red' : 'orange'}">${TIER_NAME[G.tier]}es Level</div>
+        <h2>${G.tier === 2 ? '🔥🔥' : '🔥'} Level ${L}</h2>
+        <p>Hier wird's knifflig – plane deine Züge gut! Ein 3. Aquarium kannst du für ${BOWL_PRICE} Münzen dazukaufen.</p>
+        <button class="btn green" data-act="close">Los geht's!</button>`, { close: hideModal }), 400);
     } else if (G.timed) {
       setTimeout(() => showModal(`
         <div class="ribbon orange">Zeit-Challenge</div>
@@ -552,10 +564,10 @@ function winLevel() {
   const L = G.level;
   save.level = Math.max(save.level, L + 1);
   const starsWon = G.usedBoosters === 0 ? 3 : G.usedBoosters <= 2 ? 2 : 1;
-  const coins = 30 + Math.min(40, L * 2) + starsWon * 10;
+  const coins = 10 + starsWon * 5 + [0, 15, 30][G.tier];
   save.coins += coins;
   let reward = `<div class="reward coins">${COIN}<span>+${coins} Münzen</span></div>`;
-  if (L % 3 === 0) {
+  if (L % 5 === 0) {
     const k = ['net', 'brush', 'shuffle'][rand(3)];
     save.boosters[k] = (save.boosters[k] || 0) + 1;
     reward += `<div class="reward"><div class="ricon">${BOOSTER_ICONS[k]}</div><span>+1 ${BOOSTER_INFO[k].name}</span></div>`;

@@ -12,8 +12,9 @@ Ein entspanntes Unterwasser-Sortierpuzzle für Smartphone und Tablet – direkt 
 - Drei gleiche im Glas = gesammelt, das Glas bekommt eine neue Art.
 - Leere Blasen platzen, die Blasen darüber rutschen nach und neue kommen von oben ins Bild.
 - Ist die Ablage voll und kein Zug mehr möglich, ist das Level verloren.
-- Zu Beginn sind nur 2 Aquarien frei – Aquarium 3 und 4 kosten je 650 Münzen. Münzen gibt es für jedes geschaffte Level.
-- Leere Booster lassen sich für 180 Münzen (3 Stück) nachkaufen.
+- In jedem Level sind 2 Aquarien frei – Aquarium 3 und 4 lassen sich für je 650 Münzen für das laufende Level dazukaufen.
+- Jedes 5. Level ist „Schwer“, jedes 10. „Extrem schwer“.
+- Münzen gibt es für jedes geschaffte Level (mehr für schwere Level). Booster kosten 200 Münzen.
 
 ## Booster
 - **Kescher** – holt die fehlenden Tiere für ein Glas, auch aus verdeckten Blasen
@@ -23,7 +24,8 @@ Ein entspanntes Unterwasser-Sortierpuzzle für Smartphone und Tablet – direkt 
 ## Weiteres
 - Endlose, automatisch erzeugte Level mit steigender Schwierigkeit, Zeit-Challenges in jedem 6. Level
 - 16 Arten zum Entdecken, eigenes Aquarium mit allen gesammelten Tieren
-- Alle Grafiken, Soundeffekte und die Musik werden im Code erzeugt – keine externen Assets
+- Grafiken und Soundeffekte werden im Code erzeugt; Musik: 4 eigene Tracks © Hase Games
+- Musik und Soundeffekte getrennt ein-/ausschaltbar
 - Fortschritt wird lokal im Browser gespeichert
 
 Technik: reines HTML/CSS/JavaScript, keine Abhängigkeiten.

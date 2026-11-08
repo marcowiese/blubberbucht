@@ -3,6 +3,7 @@
 
 const Sfx = (() => {
   let ctx = null, enabled = true, sfxBus = null, musicBus = null, reverb = null, noiseBuf = null;
+  const hz = m => 440 * Math.pow(2, (m - 69) / 12);
 
   function ac() {
     if (!ctx) {
@@ -20,9 +21,6 @@ const Sfx = (() => {
       reverb.buffer = ir;
       const wet = ctx.createGain(); wet.gain.value = .55;
       reverb.connect(wet).connect(ctx.destination);
-      musicBus = ctx.createGain(); musicBus.gain.value = 0;
-      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1800;
-      musicBus.connect(lp); lp.connect(ctx.destination); lp.connect(reverb);
       noiseBuf = ctx.createBuffer(1, ctx.sampleRate * .5, ctx.sampleRate);
       const nd = noiseBuf.getChannelData(0);
       for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
@@ -64,69 +62,30 @@ const Sfx = (() => {
   }
   const blub = (f, delay, vol = .12, dur = .06) => sweep(f, f * 2.6, dur, { vol, delay });
 
-  // ---------- Musik: langsame, gehaltene Flächen + vereinzelte Glockentöne ----------
-  let musicOn = false, musicTimer = null, nextBar = 0, bar = 0;
-  const hz = m => 440 * Math.pow(2, (m - 69) / 12);
-  // Akkorde (MIDI), je 8 Sekunden: Fmaj9 – Cmaj7/E – Dm9 – Bbmaj7
-  const CHORDS = [[53, 60, 64, 67, 69], [52, 59, 64, 67, 71], [50, 57, 60, 64, 65], [46, 57, 62, 65, 69]];
-  const BELLS = [[72, 76, 79, 81, 84], [71, 74, 76, 79, 83], [72, 74, 77, 81, 84], [70, 74, 77, 81, 82]];
-  const BAR = 8;
-  function pad(m, t, dur, vol) {
-    for (const det of [-4, 4]) {
-      const o = ctx.createOscillator(), g = ctx.createGain();
-      o.type = det < 0 ? 'sine' : 'triangle';
-      o.frequency.value = hz(m); o.detune.value = det;
-      g.gain.setValueAtTime(0.0001, t);
-      g.gain.exponentialRampToValueAtTime(vol, t + 2.5);
-      g.gain.setValueAtTime(vol, t + dur - 2);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + dur + 1.5);
-      o.connect(g).connect(musicBus);
-      o.start(t); o.stop(t + dur + 1.6);
+  // ---------- Musik: die 4 Tracks nacheinander, danach wieder von vorne ----------
+  const TRACKS = ['music/track1.mp3', 'music/track2.mp3', 'music/track3.mp3', 'music/track4.mp3'];
+  let musicOn = false, track = 0, player = null;
+  function getPlayer() {
+    if (!player) {
+      player = new Audio();
+      player.preload = 'auto';
+      player.volume = .6;
+      player.addEventListener('ended', () => { track = (track + 1) % TRACKS.length; player.src = TRACKS[track]; if (musicOn) player.play().catch(() => {}); });
+      player.src = TRACKS[track];
     }
-  }
-  function bell(m, t, vol) {
-    for (const [mul, v, d] of [[1, 1, 2.6], [2, .25, 1.2], [3.01, .08, .6]]) {
-      const o = ctx.createOscillator(), g = ctx.createGain();
-      o.type = 'sine'; o.frequency.value = hz(m) * mul;
-      env(g, t, .01, vol * v, d);
-      o.connect(g).connect(musicBus);
-      o.start(t); o.stop(t + d + .05);
-    }
-  }
-  let lastBell = 2;
-  function scheduleBar(t) {
-    const c = CHORDS[bar % 4], b = BELLS[bar % 4];
-    c.forEach((m, i) => pad(m, t, BAR + .5, i === 0 ? .05 : .028));
-    // 3–4 ruhige Glockentöne pro Takt, schrittweise Melodie
-    const times = [0.4, 2.4, 4.6, 6.2].filter(() => Math.random() < .8);
-    for (const dt of times) {
-      lastBell = Math.max(0, Math.min(b.length - 1, lastBell + [-1, 0, 1, 1, -1, 2, -2][Math.floor(Math.random() * 7)]));
-      bell(b[lastBell], t + dt + Math.random() * .15, .05);
-    }
-    bar++;
-  }
-  function musicLoop() {
-    if (!musicOn || !ctx) return;
-    while (nextBar < ctx.currentTime + 1.5) { scheduleBar(nextBar); nextBar += BAR; }
+    return player;
   }
   function startMusic() {
-    if (!musicOn || musicTimer) return;
-    const a = ac(); if (!a) return;
-    nextBar = Math.max(nextBar, a.currentTime + .1);
-    musicBus.gain.cancelScheduledValues(a.currentTime);
-    musicBus.gain.setTargetAtTime(.9, a.currentTime, 1.5);
-    musicLoop();
-    musicTimer = setInterval(musicLoop, 500);
+    if (!musicOn || document.hidden) return;
+    getPlayer().play().catch(() => {});
   }
-  function stopMusic() {
-    clearInterval(musicTimer); musicTimer = null;
-    if (ctx && musicBus) { musicBus.gain.cancelScheduledValues(ctx.currentTime); musicBus.gain.setTargetAtTime(0, ctx.currentTime, .3); }
-  }
+  function stopMusic() { if (player) player.pause(); }
   document.addEventListener('visibilitychange', () => { if (document.hidden) stopMusic(); else startMusic(); });
 
   return {
     set enabled(v) { enabled = v; }, get enabled() { return enabled; },
     set music(v) { musicOn = v; v ? (ctx && startMusic()) : stopMusic(); },
+    get music() { return musicOn; },
     unlock() { ac(); startMusic(); },
     // Antippen: kurzes Klicken + schnell steigender Blubb
     pop() { noise(.012, { f1: 5000, f2: 5000, q: .7, vol: .12 }); sweep(560, 1650, .075, { vol: .24, delay: .008 }); },
