@@ -1,7 +1,7 @@
 // Blubberbucht – Spiellogik
 'use strict';
 
-const APP_VERSION = '1.13.1'; // nicht von Hand ändern: tools/release.sh <version>
+const APP_VERSION = '1.13.2'; // nicht von Hand ändern: tools/release.sh <version>
 const TRAY = 6, BOWLS = 4, BOWL_PRICE = 650, BOOSTER_PRICE = 200;
 const SAVE_KEY = 'blubberbucht-v1';
 const $ = s => document.querySelector(s);
@@ -248,7 +248,8 @@ function animateMoves(before, stagger = false) {
     const u = el.dataset.uid, a = before.get(u);
     if (!a) return;
     const f = flying.get(u);
-    if (f) { f.anim.cancel(); f.clone.remove(); flying.delete(u); }
+    // abgebrochener Flug: Kopie weg und das echte Tier wieder sichtbar machen (sonst bleibt es unsichtbar)
+    if (f) { f.anim.cancel(); f.clone.remove(); flying.delete(u); el.style.visibility = ''; }
     const b = el.getBoundingClientRect();
     if (Math.abs(a.left - b.left) < 1 && Math.abs(a.top - b.top) < 1 && Math.abs(a.width - b.width) < 1) return;
     const clone = el.cloneNode(true);
@@ -279,6 +280,10 @@ function commit(fn, stagger = false) {
   if (G) dropEmpty();
   render();
   animateMoves(before, stagger);
+  // Sicherheitsnetz: Kein Tier darf ohne laufenden Flug unsichtbar bleiben
+  document.querySelectorAll('#screen-game .cr[data-uid]').forEach(el => {
+    if (el.style.visibility === 'hidden' && !flying.has(el.dataset.uid)) el.style.visibility = '';
+  });
 }
 // Beim Drehen/Größenändern: laufende Flüge sofort beenden (sonst bleiben Kopien stehen),
 // Spielfeld an das neue Format anpassen und ohne Animation neu zeichnen.
