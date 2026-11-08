@@ -88,15 +88,27 @@ const Sfx = (() => {
     get music() { return musicOn; },
     unlock() { ac(); startMusic(); },
     // Antippen: kurzes Klicken + schnell steigender Blubb
-    pop() { noise(.012, { f1: 5000, f2: 5000, q: .7, vol: .12 }); sweep(560, 1650, .075, { vol: .24, delay: .008 }); },
+    // Antippen: sehr helles, kurzes Klicken + schnell steigender Blubb (ca. 560 → 1600 Hz)
+    pop() { noise(.014, { f1: 9000, f2: 8000, q: .7, type: 'highpass', vol: .1 }); sweep(560, 1600, .07, { vol: .24, delay: .01 }); },
     // Landung in der Ablage: weicher, tieferer Plopp
     plop() { sweep(260, 620, .07, { vol: .22 }); sweep(520, 900, .05, { vol: .05, delay: .01 }); },
-    // Sprung ins Aquarium: Platsch (Wasserrauschen) + kleine Blasen
+    // Landung im Aquarium: blubbernder Platsch – tiefer Blubb, der nach oben gleitet, helle Bläschen und kurzes Wasserzischen
     splash() {
-      noise(.28, { f1: 2600, f2: 500, q: 1.2, vol: .22 });
-      noise(.12, { f1: 6000, f2: 3000, q: .8, vol: .07, type: 'highpass' });
-      sweep(180, 90, .12, { vol: .12 });
-      [.05, .1, .16, .22].forEach((d, i) => blub(700 + Math.random() * 700, d, .07 - i * .012));
+      const a = ac(); if (!a || !enabled) return;
+      const t = a.currentTime, o = a.createOscillator(), g = a.createGain();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(420, t);
+      o.frequency.setValueAtTime(430, t + .045);
+      o.frequency.exponentialRampToValueAtTime(700, t + .11);
+      env(g, t, .006, .26, .16);
+      o.connect(g).connect(sfxBus); o.start(t); o.stop(t + .2);
+      sweep(1450, 1650, .05, { vol: .09, delay: .08 });
+      noise(.11, { f1: 3400, f2: 2800, q: 1.4, vol: .14, delay: .1, attack: .01 });
+      sweep(700, 760, .05, { vol: .1, delay: .12 });
+      sweep(1600, 1750, .04, { vol: .07, delay: .165 });
+      sweep(2650, 2800, .035, { vol: .045, delay: .19 });
+      sweep(600, 700, .05, { vol: .08, delay: .225 });
+      sweep(390, 820, .07, { vol: .06, delay: .26 });
     },
     burst() { noise(.06, { f1: 4000, f2: 1500, q: .8, vol: .08 }); blub(900, .01, .08); },
     match() { [72, 76, 79, 84].forEach((m, i) => sweep(hz(m), hz(m) * 1.002, .5, { type: 'sine', vol: .1, delay: i * .08, attack: .01 })); [.0, .08].forEach(d => blub(1000 + Math.random() * 500, d + .3, .05)); },
