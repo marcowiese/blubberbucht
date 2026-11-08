@@ -1,7 +1,7 @@
 // Blubberbucht – Spiellogik
 'use strict';
 
-const APP_VERSION = '1.12.0'; // nicht von Hand ändern: tools/release.sh <version>
+const APP_VERSION = '1.12.1'; // nicht von Hand ändern: tools/release.sh <version>
 const TRAY = 6, BOWLS = 4, BOWL_PRICE = 650, BOOSTER_PRICE = 200;
 const SAVE_KEY = 'blubberbucht-v1';
 const $ = s => document.querySelector(s);
@@ -820,8 +820,8 @@ function tutNext() {
     // passendes, antippbares Tier suchen
     const u = G.bubbles.filter(b => b.items.length && !isBlocked(b)).flatMap(b => b.items).find(x => openBowlFor(G.cr[x].sp));
     if (u) { TUT.target = u; TUT.step = 2; } else TUT.step = 4;
-  } else if (TUT.step === 3) TUT.step = 4;
-  else if (TUT.step === 4) return tutStop();
+  } else if (TUT.step >= 3 && TUT.step < 7) TUT.step++;
+  else if (TUT.step === 7) return tutStop();
   tutRender();
 }
 function tutPicked(uid) {               // aus pick(): Zieltier wurde angetippt
@@ -838,7 +838,10 @@ function tutRender() {
   if (TUT.step === 1) { el = document.querySelector('#cards .card'); text = 'Unter jedem Glas zeigt eine <b>Karte</b>, welches Tier hinein gehört.'; }
   if (TUT.step === 2) { el = document.querySelector(`#stage .cr[data-uid="${TUT.target}"]`); text = 'Tippe dieses Tier an – es schwimmt ins passende Glas.'; btn = ''; block = false; }
   if (TUT.step === 3) { el = document.querySelector(`[data-bowl="${TUT.bowl}"]`); text = 'Super! Sind <b>3 gleiche</b> Tiere im Glas, sind sie gesammelt und das Glas bekommt eine neue Karte.'; }
-  if (TUT.step === 4) { el = $('#tray'); text = 'Passt ein Tier zu keiner Karte, landet es in der <b>Ablage</b>. Ist die Ablage voll, ist das Level verloren – also gut planen!'; btn = "Los geht's!"; }
+  if (TUT.step === 4) { el = $('#tray'); text = 'Passt ein Tier zu keiner Karte, landet es in der <b>Ablage</b>. Ist die Ablage voll, ist das Level verloren – also gut planen!'; }
+  if (TUT.step === 5) { el = document.querySelector('[data-booster="net"]'); text = '<b>Kescher:</b> fängt die fehlenden Tiere für ein Glas – auch aus Blasen, die noch weit oben hängen.'; }
+  if (TUT.step === 6) { el = document.querySelector('[data-booster="brush"]'); text = '<b>Aufräumen:</b> holt bis zu 3 Tiere aus der Ablage zurück in eine Blase. Die Rettung, wenn die Ablage voll wird!'; }
+  if (TUT.step === 7) { el = document.querySelector('[data-booster="shuffle"]'); text = '<b>Wirbel:</b> mischt alle Tiere in den Blasen neu – praktisch, wenn gerade nichts passt. Booster bekommst du als Belohnung oder für Münzen.'; btn = "Los geht's!"; }
   if (!el) return tutStop();
   const r = el.getBoundingClientRect(), pad = 8;
   Object.assign(t.querySelector('.tut-ring').style, { left: r.left - pad + 'px', top: r.top - pad + 'px', width: r.width + pad * 2 + 'px', height: r.height + pad * 2 + 'px' });
