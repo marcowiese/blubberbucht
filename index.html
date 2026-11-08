@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=1.7.0">
+  <link rel="stylesheet" href="style.css?v=1.8.0">
 </head>
 <body>
   <div class="ocean" aria-hidden="true">
@@ -45,7 +45,10 @@
       <div id="hero" class="hero"></div>
       <div class="menu-btns">
         <button id="btn-play" class="btn green big">Spielen<small id="menu-level">Level 1</small></button>
-        <button id="btn-aqua" class="btn blue">🐠 Mein Aquarium</button>
+        <div class="menu-row">
+          <button id="btn-map" class="btn blue">🗺️ Levelkarte</button>
+          <button id="btn-aqua" class="btn blue">🐠 Aquarium</button>
+        </div>
       </div>
       <p id="menu-version" class="menu-version"></p>
     </section>
@@ -74,6 +77,17 @@
       </div>
     </section>
 
+    <!-- Levelkarte -->
+    <section id="screen-map" class="screen" hidden>
+      <header class="hud">
+        <button id="btn-map-back" class="icon-btn" aria-label="Zurück">‹</button>
+        <div class="lvl"><div class="title-text">Levelkarte</div></div>
+        <div class="hud-right"><div class="coin-pill"><span class="ci"></span><span class="coins-val">0</span></div></div>
+      </header>
+      <p id="map-stats" class="aqua-stats"></p>
+      <div id="map-scroll" class="map-scroll"><div id="map" class="map"></div></div>
+    </section>
+
     <!-- Aquarium -->
     <section id="screen-aquarium" class="screen" hidden>
       <header class="hud">
@@ -92,8 +106,8 @@
   </div>
   <div id="fx"></div>
 
-  <script src="js/species.js?v=1.7.0"></script>
-  <script src="js/audio.js?v=1.7.0"></script>
-  <script src="js/game.js?v=1.7.0"></script>
+  <script src="js/species.js?v=1.8.0"></script>
+  <script src="js/audio.js?v=1.8.0"></script>
+  <script src="js/game.js?v=1.8.0"></script>
 </body>
 </html>

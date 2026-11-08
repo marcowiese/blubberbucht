@@ -1,7 +1,7 @@
 // Blubberbucht – Spiellogik
 'use strict';
 
-const APP_VERSION = '1.7.0'; // nicht von Hand ändern: tools/release.sh <version>
+const APP_VERSION = '1.8.0'; // nicht von Hand ändern: tools/release.sh <version>
 const TRAY = 6, BOWLS = 4, BOWL_PRICE = 650, BOOSTER_PRICE = 200;
 const SAVE_KEY = 'blubberbucht-v1';
 const $ = s => document.querySelector(s);
@@ -10,12 +10,12 @@ const rand = n => Math.floor(Math.random() * n);
 const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = rand(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 
 // ---------- Speicherstand ----------
-const DEFAULTS = { level: 1, boosters: { net: 1, brush: 1, shuffle: 1 }, caught: {}, aquarium: [], sound: true, music: true, vib: true, seen: 3, coins: 100 };
+const DEFAULTS = { level: 1, boosters: { net: 1, brush: 1, shuffle: 1 }, caught: {}, aquarium: [], sound: true, music: true, vib: true, seen: 3, coins: 100, stars: {} };
 let save = loadSave();
 function loadSave() {
   try {
     const s = JSON.parse(localStorage.getItem(SAVE_KEY) || '{}');
-    return { ...DEFAULTS, ...s, boosters: { ...DEFAULTS.boosters, ...(s.boosters || {}) } };
+    return { ...DEFAULTS, ...s, boosters: { ...DEFAULTS.boosters, ...(s.boosters || {}) }, stars: { ...(s.stars || {}) } };
   } catch { return structuredClone(DEFAULTS); }
 }
 function persist() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch {} }
@@ -567,12 +567,18 @@ function winLevel() {
   Sfx.win(); vib([30, 60, 30]);
   confetti();
   const L = G.level;
+  const replay = L < save.level;
   save.level = Math.max(save.level, L + 1);
   const starsWon = G.usedBoosters === 0 ? 3 : G.usedBoosters <= 2 ? 2 : 1;
-  const coins = 10 + starsWon * 5 + [0, 15, 30][G.tier];
+  const before = save.stars[L] || 0;
+  save.stars[L] = Math.max(before, starsWon);
+  // Erstes Mal: volle Belohnung. Wiederholung: kleiner Grundbetrag + Bonus für jeden neu verdienten Stern
+  const newStars = Math.max(0, starsWon - before);
+  const coins = replay ? 5 + newStars * 10 : 10 + starsWon * 5 + [0, 15, 30][G.tier];
   save.coins += coins;
   let reward = `<div class="reward coins">${COIN}<span>+${coins} Münzen</span></div>`;
-  if (L % 5 === 0) {
+  if (replay && newStars) reward += `<p class="small">Neuer Rekord: ${starsWon} Sterne!</p>`;
+  if (!replay && L % 5 === 0) {
     const k = ['net', 'brush', 'shuffle'][rand(3)];
     save.boosters[k] = (save.boosters[k] || 0) + 1;
     reward += `<div class="reward"><div class="ricon">${BOOSTER_ICONS[k]}</div><span>+1 ${BOOSTER_INFO[k].name}</span></div>`;
@@ -587,8 +593,9 @@ function winLevel() {
     <div class="mini-row">${species.map(s => `<div>${creatureSVG(s)}</div>`).join('')}</div>
     ${reward}
     <button class="btn green" data-act="next">Weiter</button>
-    <button class="btn ghost" data-act="aqua">Zum Aquarium</button>`, {
+    <button class="btn ghost" data-act="map">Levelkarte</button>`, {
     next: () => startLevel(L + 1),
+    map: () => { hideModal(); openMap(); },
     aqua: () => { hideModal(); openAquarium(); },
   });
 }
@@ -718,6 +725,36 @@ function applyUpdate() {
 const inLevel = () => G && !G.over && !$('#screen-game').hidden;
 async function updateIfIdle() { if (await checkForUpdate() && !inLevel()) applyUpdate(); }
 
+// ---------- Levelkarte: Level 1 an der Oberfläche, je weiter, desto tiefer ----------
+function openMap() {
+  clearInterval(timerId);
+  showScreen('map');
+  renderCoins();
+  const cur = save.level, last = cur + 8;
+  const totalStars = Object.values(save.stars).reduce((a, b) => a + b, 0);
+  $('#map-stats').textContent = `${cur - 1} Level geschafft · ${totalStars} ★ gesammelt`;
+  const STEP = 24, X = i => 50 + Math.sin(i * .85) * 28;       // Einheiten in --u
+  const pts = [];
+  let nodes = '', marks = '';
+  for (let L = 1; L <= last; L++) {
+    const x = X(L), y = 14 + (L - 1) * STEP;
+    pts.push(`${x},${y}`);
+    const tier = tierOf(L), st = save.stars[L] || 0, locked = L > cur, current = L === cur;
+    nodes += `<button class="node t${tier} ${locked ? 'locked' : ''} ${current ? 'current' : ''}" data-level="${L}" style="left:calc(${x} * var(--u));top:calc(${y} * var(--u))" ${locked ? 'disabled' : ''}>
+      <b>${locked ? '🔒' : L}</b>${tier ? `<i class="flame">${tier === 2 ? '🔥🔥' : '🔥'}</i>` : ''}
+      ${!locked && !current ? `<span class="nstars">${[1, 2, 3].map(i => `<em class="${i <= st ? 'on' : ''}">★</em>`).join('')}</span>` : ''}
+    </button>`;
+    if (L % 10 === 0) marks += `<div class="depth" style="top:calc(${y} * var(--u))">${L * 10} m</div>`;
+  }
+  const H = 14 + (last - 1) * STEP + 20;
+  $('#map').style.height = `calc(${H} * var(--u))`;
+  $('#map').innerHTML = `<svg class="map-path" viewBox="0 0 100 ${H}" preserveAspectRatio="none"><polyline points="${pts.join(' ')}" /></svg>${marks}${nodes}`;
+  requestAnimationFrame(() => {
+    const el = document.querySelector('.node.current');
+    if (el) el.scrollIntoView({ block: 'center' });
+  });
+}
+
 // ---------- Screens ----------
 function showScreen(name) {
   document.querySelectorAll('.screen').forEach(s => s.hidden = s.id !== 'screen-' + name);
@@ -785,6 +822,15 @@ function init() {
     startLevel(save.level);
   });
   $('#btn-aqua').addEventListener('click', () => { Sfx.click(); openAquarium(); });
+  $('#btn-map').addEventListener('click', () => { Sfx.unlock(); Sfx.click(); openMap(); });
+  $('#btn-map-back').addEventListener('click', () => { Sfx.click(); openMenu(); });
+  $('#map').addEventListener('click', async e => {
+    const n = e.target.closest('.node:not([disabled])');
+    if (!n) return;
+    Sfx.click();
+    if (await checkForUpdate()) { applyUpdate(); return; }
+    startLevel(+n.dataset.level);
+  });
   $('#btn-aqua-back').addEventListener('click', () => { Sfx.click(); openMenu(); });
   $('#btn-aqua-play').addEventListener('click', () => { Sfx.click(); startLevel(save.level); });
   document.querySelectorAll('.btn-settings').forEach(b => b.addEventListener('click', () => { Sfx.click(); openSettings(); }));
