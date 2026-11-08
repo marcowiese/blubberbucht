@@ -1,7 +1,7 @@
 // Blubberbucht – Spiellogik
 'use strict';
 
-const APP_VERSION = '1.5.1'; // bei jeder Veröffentlichung erhöhen (auch CACHE in sw.js)
+const APP_VERSION = '1.5.2'; // bei jeder Veröffentlichung erhöhen (auch CACHE in sw.js)
 const TRAY = 6, BOWLS = 4, BOWL_PRICE = 650, BOOSTER_PRICE = 200;
 const SAVE_KEY = 'blubberbucht-v1';
 const $ = s => document.querySelector(s);
@@ -19,7 +19,25 @@ function loadSave() {
   } catch { return structuredClone(DEFAULTS); }
 }
 function persist() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch {} }
-const vib = ms => { if (save.vib && navigator.vibrate) navigator.vibrate(ms); };
+// Vibration: Android nutzt navigator.vibrate. Safari auf dem iPhone kennt das nicht –
+// dort löst das Umschalten eines versteckten iOS-Schalters (input switch, ab iOS 18) einen kurzen Haptik-Tick aus.
+let hapticLabel = null;
+function iosHaptic() {
+  if (!hapticLabel) {
+    const box = document.createElement('input');
+    box.type = 'checkbox'; box.setAttribute('switch', ''); box.id = 'haptic-switch';
+    hapticLabel = document.createElement('label');
+    hapticLabel.htmlFor = 'haptic-switch';
+    for (const el of [box, hapticLabel]) { el.setAttribute('aria-hidden', 'true'); el.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0;pointer-events:none'; }
+    document.body.append(box, hapticLabel);
+  }
+  hapticLabel.click();
+}
+const vib = ms => {
+  if (!save.vib) return;
+  if (typeof navigator.vibrate === 'function') { try { navigator.vibrate(ms); } catch {} }
+  else iosHaptic();
+};
 
 // ---------- Level-Aufbau ----------
 // Schwierigkeit: jedes 5. Level „Schwer“, jedes 10. „Extrem schwer“
