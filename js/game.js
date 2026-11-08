@@ -1,7 +1,7 @@
 // Blubberbucht – Spiellogik
 'use strict';
 
-const APP_VERSION = '1.6.0'; // nicht von Hand ändern: tools/release.sh <version>
+const APP_VERSION = '1.7.0'; // nicht von Hand ändern: tools/release.sh <version>
 const TRAY = 6, BOWLS = 4, BOWL_PRICE = 650, BOOSTER_PRICE = 200;
 const SAVE_KEY = 'blubberbucht-v1';
 const $ = s => document.querySelector(s);
@@ -737,7 +737,7 @@ function openAquarium() {
   const list = save.aquarium.slice(-24);
   tank.innerHTML = list.length ? list.map(sp => {
     const dur = 9 + Math.random() * 10, y = 8 + Math.random() * 72, size = 11 + Math.random() * 6;
-    return `<div class="swimmer" style="top:${y}%;width:${size}cqw;animation-duration:${dur}s;animation-delay:-${Math.random() * dur}s"><div class="bob">${creatureSVG(sp)}</div></div>`;
+    return `<div class="swimmer" style="top:${y}%;width:calc(${size} * var(--u));animation-duration:${dur}s;animation-delay:-${Math.random() * dur}s"><div class="bob">${creatureSVG(sp)}</div></div>`;
   }).join('') : `<p class="tank-empty">Noch leer – sammle Tiere im Spiel!</p>`;
   const total = Object.values(save.caught).reduce((a, b) => a + b, 0);
   $('#aqua-stats').textContent = `${total} Tiere gesammelt · ${Object.keys(save.caught).length}/${SPECIES.length} Arten`;
