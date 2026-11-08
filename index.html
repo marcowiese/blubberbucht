@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>Blubberbucht – Fisch-Sortierpuzzle</title>
+  <meta name="description" content="Entspanntes Unterwasser-Sortierpuzzle: Sammle je drei gleiche Meeresbewohner in deinen Gläsern.">
+  <meta name="theme-color" content="#1c93dc">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Blubberbucht">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon-180.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="ocean" aria-hidden="true">
+    <div class="rays"></div>
+    <svg class="weed left" viewBox="0 0 120 300" preserveAspectRatio="xMinYMax meet">
+      <path d="M20 300 C0 240 40 210 18 160 C0 120 34 90 22 40" stroke="#2fa35a" stroke-width="16" fill="none" stroke-linecap="round"/>
+      <path d="M60 300 C80 250 40 220 64 170 C80 130 50 110 62 70" stroke="#45c26e" stroke-width="13" fill="none" stroke-linecap="round"/>
+      <path d="M95 300 C110 270 86 250 100 215" stroke="#c35bd6" stroke-width="18" fill="none" stroke-linecap="round"/>
+    </svg>
+    <svg class="weed right" viewBox="0 0 120 300" preserveAspectRatio="xMaxYMax meet">
+      <path d="M100 300 C120 240 80 210 102 160 C120 120 86 90 98 40" stroke="#2fa35a" stroke-width="16" fill="none" stroke-linecap="round"/>
+      <path d="M60 300 C40 250 80 220 56 170 C40 130 70 110 58 70" stroke="#45c26e" stroke-width="13" fill="none" stroke-linecap="round"/>
+      <path d="M22 300 C10 270 34 250 18 222" stroke="#ff6f8f" stroke-width="18" fill="none" stroke-linecap="round"/>
+    </svg>
+    <div class="rise"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+
+  <div id="app">
+    <!-- Hauptmenü -->
+    <section id="screen-menu" class="screen" hidden>
+      <button class="icon-btn btn-settings corner" aria-label="Einstellungen">⚙</button>
+      <h1 class="logo"><span data-t="Blubber">Blubber</span><span data-t="bucht" class="blue">bucht</span></h1>
+      <p class="tagline">Das gemütliche Fisch-Sortierpuzzle</p>
+      <div id="hero" class="hero"></div>
+      <div class="menu-btns">
+        <button id="btn-play" class="btn green big">Spielen<small id="menu-level">Level 1</small></button>
+        <button id="btn-aqua" class="btn blue">🐠 Mein Aquarium</button>
+      </div>
+    </section>
+
+    <!-- Spiel -->
+    <section id="screen-game" class="screen" hidden>
+      <header class="hud">
+        <div class="counter"><svg viewBox="0 0 40 24"><path d="M4 12 Q12 2 24 4 Q32 6 34 12 Q32 18 24 20 Q12 22 4 12Z M30 12 L40 4 L38 12 L40 20Z" fill="#fff"/><circle cx="12" cy="10" r="2" fill="#1b5fb5"/></svg><span id="cnt">0/0</span></div>
+        <div class="lvl"><div id="lvl-title" class="title-text">Level 1</div><div id="timer" hidden></div></div>
+        <button class="icon-btn btn-settings" aria-label="Einstellungen">⚙</button>
+      </header>
+      <div class="shelf">
+        <div id="bowls" class="bowls"></div>
+        <div class="plank"></div>
+        <div id="cards" class="cards"></div>
+      </div>
+      <div id="tray" class="tray"></div>
+      <div id="board" class="board"><div id="stage"></div></div>
+      <div class="boosters">
+        <button class="booster" data-booster="net" aria-label="Kescher"><span class="bicon"></span><span class="badge">2</span></button>
+        <button class="booster" data-booster="brush" aria-label="Aufräumen"><span class="bicon"></span><span class="badge">2</span></button>
+        <button class="booster" data-booster="shuffle" aria-label="Wirbel"><span class="bicon"></span><span class="badge">2</span></button>
+        <button id="btn-help" class="help-btn" aria-label="Booster-Hilfe">?</button>
+      </div>
+    </section>
+
+    <!-- Aquarium -->
+    <section id="screen-aquarium" class="screen" hidden>
+      <header class="hud">
+        <button id="btn-aqua-back" class="icon-btn" aria-label="Zurück">‹</button>
+        <div class="lvl"><div class="title-text">Aquarium</div></div>
+        <button class="icon-btn btn-settings" aria-label="Einstellungen">⚙</button>
+      </header>
+      <div class="tank"><div id="tank-swim"></div><div class="tank-sand"></div></div>
+      <p id="aqua-stats" class="aqua-stats"></p>
+      <div id="album" class="album"></div>
+      <div class="aqua-foot"><button id="btn-aqua-play" class="btn green">Weiterspielen</button></div>
+    </section>
+
+    <div id="modal" class="modal" hidden></div>
+    <div id="toast" class="toast"></div>
+  </div>
+  <div id="fx"></div>
+
+  <script src="js/species.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>
