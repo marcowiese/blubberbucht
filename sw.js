@@ -1,5 +1,5 @@
 // Offline-Cache: zeigt sofort die gespeicherte Version und lädt im Hintergrund Updates.
-const CACHE = 'blubberbucht-v1';
+const CACHE = 'blubberbucht-v2';
 const FILES = ['./', 'index.html', 'style.css', 'js/species.js', 'js/audio.js', 'js/game.js', 'icon.svg', 'manifest.webmanifest'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES))); self.skipWaiting(); });
 self.addEventListener('activate', e => {

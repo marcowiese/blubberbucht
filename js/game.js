@@ -1,7 +1,7 @@
 // Blubberbucht – Spiellogik
 'use strict';
 
-const TRAY = 6, BOWLS = 4;
+const TRAY = 6, BOWLS = 4, BOWL_PRICE = 650, BOOSTER_PRICE = 180;
 const SAVE_KEY = 'blubberbucht-v1';
 const $ = s => document.querySelector(s);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -9,7 +9,7 @@ const rand = n => Math.floor(Math.random() * n);
 const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = rand(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 
 // ---------- Speicherstand ----------
-const DEFAULTS = { level: 1, boosters: { net: 2, brush: 2, shuffle: 2 }, caught: {}, aquarium: [], sound: true, music: true, vib: true, seen: 3 };
+const DEFAULTS = { level: 1, boosters: { net: 2, brush: 2, shuffle: 2 }, caught: {}, aquarium: [], sound: true, music: true, vib: true, seen: 3, coins: 150, bowlsOpen: 2 };
 let save = loadSave();
 function loadSave() {
   try {
@@ -21,12 +21,13 @@ function persist() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save));
 const vib = ms => { if (save.vib && navigator.vibrate) navigator.vibrate(ms); };
 
 // ---------- Level-Aufbau ----------
-const unlockedCount = L => Math.min(SPECIES.length, 3 + Math.floor((L - 1) / 2));
+const DIFF = { s: .4, smax: 11 };
+const unlockedCount = L => Math.min(SPECIES.length, 3 + Math.floor((L - 1) * .6));
 function levelParams(L) {
   return {
-    layers: L <= 2 ? 1 : L <= 6 ? 2 : 3,
-    T: Math.min(5 + Math.floor(L * 0.9), 21),
-    S: Math.min(unlockedCount(L), 3 + Math.floor(L / 3), 8 + Math.floor(L / 12)),
+    layers: L <= 1 ? 1 : L <= 4 ? 2 : 3,
+    T: Math.min(6 + Math.floor(L * .9), 21),
+    S: Math.min(unlockedCount(L), 3 + Math.floor(L * DIFF.s), DIFF.smax),
     timed: L >= 6 && L % 6 === 0,
   };
 }
@@ -73,8 +74,11 @@ function genLevel(L) {
     cr[uid] = { uid, sp: list.pop(), rot: (Math.random() - .5) * 16, flip: Math.random() < .2 };
     b.items.push(uid);
   }
-  return { level: L, H, bubbles, cr, nextB: bubbles.length, total: n, collected: 0, species: chosen,
-    bowls: Array.from({ length: BOWLS }, () => ({ sp: null, items: [], completing: false })),
+  // Zielkarten-Stapel: feste, zufällige Reihenfolge aller Dreiergruppen (hilft dem Spieler nicht)
+  const counts = {}; Object.values(cr).forEach(c => counts[c.sp] = (counts[c.sp] || 0) + 1);
+  const q = []; for (const sp in counts) for (let i = 0; i < counts[sp] / 3; i++) q.push(sp);
+  return { level: L, H, bubbles, cr, nextB: bubbles.length, total: n, collected: 0, species: chosen, queue: shuffle(q),
+    bowls: Array.from({ length: BOWLS }, (_, i) => ({ sp: null, items: [], completing: false, locked: i >= save.bowlsOpen })),
     tray: [], pending: 0, over: false, paused: false, timed: p.timed,
     timeLeft: p.timed ? Math.ceil(n * 2.4) + 15 : 0, extraTime: false, usedBoosters: 0 };
 }
@@ -95,23 +99,14 @@ const openBowlFor = sp => G.bowls.find(w => w.sp === sp && !w.completing && w.it
 
 function assignTargets() {
   for (const bw of G.bowls) {
-    if (bw.sp || bw.completing) continue;
-    let best = null, bestScore = -1e9;
-    for (const sp of G.species) {
-      const unc = countWhere(sp) + trayCount(sp);
-      const committed = G.bowls.reduce((a, w) => a + (w.sp === sp ? 3 - w.items.length : 0), 0);
-      if (unc - committed < 3) continue;
-      const dup = G.bowls.some(w => w.sp === sp);
-      const score = trayCount(sp) * 100 + countWhere(sp, true) * 10 - (dup ? 60 : 0) + Math.random() * 8;
-      if (score > bestScore) { bestScore = score; best = sp; }
-    }
-    bw.sp = best;
+    if (bw.sp || bw.completing || bw.locked) continue;
+    bw.sp = G.queue.shift() || null;
   }
 }
 function settle() {
   assignTargets();
   for (const bw of G.bowls) {
-    if (!bw.sp || bw.completing) continue;
+    if (!bw.sp || bw.completing || bw.locked) continue;
     for (let i = 0; i < G.tray.length && bw.items.length < 3; i++) {
       if (G.cr[G.tray[i]].sp === bw.sp) { bw.items.push(G.tray[i]); G.tray.splice(i, 1); i--; }
     }
@@ -160,10 +155,12 @@ function renderBoard() {
   }).join('');
 }
 function renderBowls() {
-  $('#bowls').innerHTML = G.bowls.map((w, i) =>
-    `<div class="bowl ${w.completing ? 'done' : ''}" data-bowl="${i}">${BOWL_SVG}<div class="bowl-fish">${w.items.map(u => crHTML(u)).join('')}</div></div>`).join('');
-  $('#cards').innerHTML = G.bowls.map(w =>
-    `<div class="card ${w.sp ? '' : 'empty'} ${w.completing ? 'done' : ''}">${w.sp ? creatureSVG(w.sp) + `<b>${w.items.length}/3</b>` : '<span class="check">✓</span>'}</div>`).join('');
+  $('#bowls').innerHTML = G.bowls.map((w, i) => w.locked
+    ? `<div class="bowl locked" data-bowl="${i}">${BOWL_SVG}<div class="lock">🔒</div></div>`
+    : `<div class="bowl ${w.completing ? 'done' : ''}" data-bowl="${i}">${BOWL_SVG}<div class="bowl-fish">${w.items.map(u => crHTML(u)).join('')}</div></div>`).join('');
+  $('#cards').innerHTML = G.bowls.map((w, i) => w.locked
+    ? `<div class="card buy" data-buy="${i}"><span class="price">${COIN}${BOWL_PRICE}</span></div>`
+    : `<div class="card ${w.sp ? '' : 'empty'} ${w.completing ? 'done' : ''}">${w.sp ? creatureSVG(w.sp) + `<b>${w.items.length}/3</b>` : '<span class="check">✓</span>'}${w.sp && G.queue.length ? `<i class="stack">+${G.queue.length}</i>` : ''}</div>`).join('');
 }
 function renderTray() {
   const t = $('#tray');
@@ -172,6 +169,7 @@ function renderTray() {
 }
 function renderHUD() {
   $('#cnt').textContent = `${G.collected}/${G.total}`;
+  renderCoins();
   $('#lvl-title').textContent = `Level ${G.level}`;
   for (const k of ['net', 'brush', 'shuffle']) {
     const b = document.querySelector(`[data-booster="${k}"]`);
@@ -230,6 +228,7 @@ function animateMoves(before, stagger = false) {
   });
 }
 function commit(fn, stagger = false) {
+  if (window.SIM) { fn(); return; }
   const before = captureRects();
   fn();
   render();
@@ -272,6 +271,7 @@ function sparkleAt(r, n = 14) {
 function completeBowl(bw) {
   bw.completing = true; G.pending++;
   const g = G, idx = G.bowls.indexOf(bw);
+  if (window.SIM) { G.collected += 3; bw.items = []; bw.sp = null; bw.completing = false; G.pending--; settle(); return; }
   setTimeout(() => {
     if (G !== g) return;
     const el = document.querySelector(`[data-bowl="${idx}"]`);
@@ -315,7 +315,7 @@ function pick(uid) {
     else trayInsert(uid);
   });
   if (burst) burstAt(burst);
-  bw ? Sfx.bowl() : Sfx.tray();
+  if (!window.SIM) setTimeout(() => bw ? Sfx.splash() : Sfx.plop(), 380);
   vib(8);
   afterChange();
 }
@@ -351,6 +351,59 @@ function afterChange() {
   }
 }
 
+// ---------- Münzen & Käufe ----------
+const COIN = `<svg class="coin" viewBox="0 0 40 40"><circle cx="20" cy="20" r="17" fill="#ffcf2e" stroke="#c27b00" stroke-width="3"/><circle cx="20" cy="20" r="11" fill="none" stroke="#e8a200" stroke-width="2.5"/><path d="M14 13 Q18 10 22 12" stroke="#fff6c0" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg>`;
+function renderCoins() {
+  document.querySelectorAll('.coins-val').forEach(e => e.textContent = save.coins);
+}
+function spend(n) {
+  if (save.coins < n) return false;
+  save.coins -= n; persist(); renderCoins();
+  return true;
+}
+function noCoins(n) {
+  showModal(`<div class="ribbon red">Zu wenig Münzen</div>
+    <div class="big-coin">${COIN}</div>
+    <p>Du brauchst ${n} Münzen, hast aber nur ${save.coins}.</p>
+    <p class="small">Münzen bekommst du für jedes geschaffte Level – mit 3 Sternen gibt's extra!</p>
+    <button class="btn green" data-act="close">OK</button>`, { close: hideModal });
+}
+function offerBowl() {
+  if (!G || G.over) return;
+  const idx = G.bowls.findIndex(w => w.locked);
+  if (idx < 0) return;
+  showModal(`<div class="ribbon">Aquarium freischalten</div>
+    <div class="hero-bowl">${BOWL_SVG}<div class="lock">🔒</div></div>
+    <p>Ein zusätzliches Aquarium gibt dir dauerhaft mehr Platz zum Sortieren.</p>
+    <button class="btn orange" data-act="buy">Kaufen für ${COIN} ${BOWL_PRICE}</button>
+    <button class="btn ghost" data-act="close">Später</button>`, {
+    close: hideModal,
+    buy: () => {
+      if (!spend(BOWL_PRICE)) return noCoins(BOWL_PRICE);
+      save.bowlsOpen = Math.min(BOWLS, save.bowlsOpen + 1); persist();
+      hideModal();
+      commit(() => { G.bowls[idx].locked = false; settle(); });
+      const el = document.querySelector(`[data-bowl="${idx}"]`);
+      if (el) sparkleAt(el.getBoundingClientRect(), 22);
+      Sfx.match(); afterChange();
+    },
+  });
+}
+function offerBooster(k) {
+  showModal(`<div class="ribbon">${BOOSTER_INFO[k].name}</div>
+    <div class="ricon big">${BOOSTER_ICONS[k]}</div>
+    <p>${BOOSTER_INFO[k].desc}</p>
+    <button class="btn orange" data-act="buy">3 Stück für ${COIN} ${BOOSTER_PRICE}</button>
+    <button class="btn ghost" data-act="close">Abbrechen</button>`, {
+    close: hideModal,
+    buy: () => {
+      if (!spend(BOOSTER_PRICE)) return noCoins(BOOSTER_PRICE);
+      save.boosters[k] = (save.boosters[k] || 0) + 3; persist();
+      hideModal(); renderHUD(); Sfx.booster();
+    },
+  });
+}
+
 // ---------- Booster ----------
 const BOOSTER_INFO = {
   net: { name: 'Kescher', desc: 'Fängt die fehlenden Tiere für ein Glas – auch aus verdeckten Blasen.' },
@@ -359,7 +412,7 @@ const BOOSTER_INFO = {
 };
 function useBooster(k) {
   if (!G || G.over || G.paused) return;
-  if (!save.boosters[k]) { toast(`Keine ${BOOSTER_INFO[k].name}-Booster mehr – gewinne Level für neue!`); Sfx.error(); return; }
+  if (!save.boosters[k]) { offerBooster(k); return; }
   const ok = ({ net: boostNet, brush: boostBrush, shuffle: boostShuffle })[k]();
   if (!ok) return;
   save.boosters[k]--; G.usedBoosters++; persist();
@@ -468,11 +521,14 @@ function winLevel() {
   confetti();
   const L = G.level;
   save.level = Math.max(save.level, L + 1);
-  let reward = '';
-  if (L % 2 === 0 || G.usedBoosters === 0) {
+  const starsWon = G.usedBoosters === 0 ? 3 : G.usedBoosters <= 2 ? 2 : 1;
+  const coins = 30 + Math.min(40, L * 2) + starsWon * 10;
+  save.coins += coins;
+  let reward = `<div class="reward coins">${COIN}<span>+${coins} Münzen</span></div>`;
+  if (L % 3 === 0) {
     const k = ['net', 'brush', 'shuffle'][rand(3)];
     save.boosters[k] = (save.boosters[k] || 0) + 1;
-    reward = `<div class="reward"><div class="ricon">${BOOSTER_ICONS[k]}</div><span>+1 ${BOOSTER_INFO[k].name}</span></div>`;
+    reward += `<div class="reward"><div class="ricon">${BOOSTER_ICONS[k]}</div><span>+1 ${BOOSTER_INFO[k].name}</span></div>`;
   }
   persist();
   const species = [...new Set(Object.values(G.cr).map(c => c.sp))];
@@ -586,6 +642,7 @@ function openMenu() {
   clearInterval(timerId); clearFx();
   G = null;
   $('#menu-level').textContent = `Level ${save.level}`;
+  renderCoins();
   showScreen('menu');
 }
 function openAquarium() {
@@ -626,6 +683,7 @@ const BOOSTER_ICONS = {
 // ---------- Start ----------
 function init() {
   buildSpeciesDefs();
+  document.querySelectorAll('.coin-pill .ci').forEach(e => e.innerHTML = COIN);
   Sfx.enabled = save.sound;
   Sfx.music = save.music;
   document.querySelectorAll('[data-booster]').forEach(b => {
@@ -634,6 +692,7 @@ function init() {
   });
   $('#hero').innerHTML = `<div class="h1">${creatureSVG('zitrino')}</div><div class="h2">${creatureSVG('schildi')}</div><div class="h3">${creatureSVG('rosalie')}</div><div class="h4">${creatureSVG('okti')}</div>`;
   $('#board').addEventListener('click', onBoardTap);
+  document.querySelector('.shelf').addEventListener('click', e => { if (e.target.closest('.locked, .buy')) { Sfx.click(); offerBowl(); } });
   $('#btn-play').addEventListener('click', () => { Sfx.unlock(); Sfx.click(); startLevel(save.level); });
   $('#btn-aqua').addEventListener('click', () => { Sfx.click(); openAquarium(); });
   $('#btn-aqua-back').addEventListener('click', () => { Sfx.click(); openMenu(); });

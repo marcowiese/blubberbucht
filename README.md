@@ -1,5 +1,7 @@
 # Blubberbucht 🐠
 
+*von Hase Games*
+
 Ein entspanntes Unterwasser-Sortierpuzzle für Smartphone und Tablet – direkt im Browser, offline-fähig und als App auf dem Homescreen installierbar.
 
 **Spielen:** https://marcowiese.github.io/blubberbucht/
@@ -10,6 +12,8 @@ Ein entspanntes Unterwasser-Sortierpuzzle für Smartphone und Tablet – direkt 
 - Drei gleiche im Glas = gesammelt, das Glas bekommt eine neue Art.
 - Abgedunkelte Blasen sind verdeckt und erst frei, wenn die Blasen darüber geplatzt sind.
 - Ist die Ablage voll und kein Zug mehr möglich, ist das Level verloren.
+- Zu Beginn sind nur 2 Aquarien frei – Aquarium 3 und 4 kosten je 650 Münzen. Münzen gibt es für jedes geschaffte Level.
+- Leere Booster lassen sich für 180 Münzen (3 Stück) nachkaufen.
 
 ## Booster
 - **Kescher** – holt die fehlenden Tiere für ein Glas, auch aus verdeckten Blasen
