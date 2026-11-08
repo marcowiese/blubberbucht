@@ -1,7 +1,7 @@
 // Blubberbucht – Spiellogik
 'use strict';
 
-const APP_VERSION = '1.5.2'; // bei jeder Veröffentlichung erhöhen (auch CACHE in sw.js)
+const APP_VERSION = '1.5.3'; // bei jeder Veröffentlichung erhöhen (auch CACHE in sw.js)
 const TRAY = 6, BOWLS = 4, BOWL_PRICE = 650, BOOSTER_PRICE = 200;
 const SAVE_KEY = 'blubberbucht-v1';
 const $ = s => document.querySelector(s);
@@ -612,14 +612,19 @@ function loseLevel(reason) {
   const acts = {
     retry: () => startLevel(L),
     menu: () => { hideModal(); openMenu(); },
-    brush: () => { hideModal(); G.over = false; useBooster('brush'); },
-    shuffle: () => { hideModal(); G.over = false; useBooster('shuffle'); afterChange(); },
+    brush: () => { hideModal(); G.over = false; useBooster('brush'); startTimer(); },
+    buybrush: () => {
+      if (!spend(BOOSTER_PRICE)) return noCoins(BOOSTER_PRICE);
+      save.boosters.brush = (save.boosters.brush || 0) + 1; persist();
+      hideModal(); G.over = false; useBooster('brush'); startTimer();
+    },
     time: () => { hideModal(); G.over = false; G.extraTime = true; G.timeLeft += 20; startTimer(); renderHUD(); },
   };
   let opts = '';
   if (reason === 'tray') {
     if (save.boosters.brush) opts += `<button class="btn orange" data-act="brush">Aufräumen nutzen (${save.boosters.brush})</button>`;
-    if (save.boosters.shuffle) opts += `<button class="btn orange" data-act="shuffle">Wirbel nutzen (${save.boosters.shuffle})</button>`;
+    // Nur „Aufräumen“ hilft: es holt Tiere aus der Ablage. Wirbel/Kescher leeren die Ablage nicht.
+    else opts += `<button class="btn orange" data-act="buybrush">Aufräumen kaufen & nutzen (${COIN} ${BOOSTER_PRICE})</button>`;
   } else if (!G.extraTime) {
     opts += `<button class="btn orange" data-act="time">+20 Sekunden</button>`;
   }
