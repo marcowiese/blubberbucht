@@ -216,14 +216,14 @@ button { font-family: inherit; cursor: pointer; border: 0; color: inherit; touch
 .panel {
   width: 84cqw; max-height: 92%; overflow: auto; position: relative; text-align: center;
   background: linear-gradient(#ffffff, #dff3ff); color: #1f4f8f; border-radius: 6cqw;
-  border: 1cqw solid #8fd3ff; padding: 10cqw 6cqw 6cqw; box-shadow: 0 3cqw 6cqw rgba(0,20,60,.4);
+  border: 1cqw solid #8fd3ff; padding: 16cqw 6cqw 6cqw; box-shadow: 0 3cqw 6cqw rgba(0,20,60,.4);
   animation: panelin .35s cubic-bezier(.3,1.5,.5,1);
 }
 @keyframes panelin { from { transform: scale(.7); opacity: 0; } }
 .panel h2 { margin: 1cqw 0; font-size: 7.4cqw; color: #1b5fb5; }
 .panel p { font-size: 4.4cqw; margin: 2cqw 0; font-weight: 500; }
 .ribbon {
-  position: absolute; top: -4cqw; left: 6cqw; right: 6cqw; padding: 2.4cqw;
+  position: absolute; top: 3cqw; left: 5cqw; right: 5cqw; padding: 2.4cqw;
   border-radius: 3cqw; background: linear-gradient(#5cc0ff, #1f7ae0); color: #fff;
   font-weight: 700; font-size: 6cqw; box-shadow: 0 1cqw 0 #155ab0; text-shadow: 0 .4cqw 0 rgba(0,0,0,.25);
 }
@@ -351,3 +351,7 @@ button { font-family: inherit; cursor: pointer; border: 0; color: inherit; touch
 .menu-version { position: absolute; bottom: calc(env(safe-area-inset-bottom) + 2cqw); left: 0; right: 0; margin: 0; text-align: center; font-size: 3.2cqw; font-weight: 600; opacity: .8; text-shadow: 0 .3cqw 0 rgba(0,40,100,.5); }
 .panel .version { font-size: 3.4cqw; opacity: .6; margin: 3cqw 0 0; }
 .btn.small-btn { font-size: 4.2cqw; padding: 2cqw 4cqw; margin-top: 1cqw; }
+
+.btn:disabled { filter: grayscale(.85); opacity: .65; cursor: default; }
+.btn:disabled:active { transform: none; }
+.btn small.need { font-size: 3.4cqw; font-weight: 600; }

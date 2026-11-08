@@ -1,7 +1,7 @@
 // Blubberbucht – Spiellogik
 'use strict';
 
-const APP_VERSION = '1.5.6'; // bei jeder Veröffentlichung erhöhen (auch CACHE in sw.js)
+const APP_VERSION = '1.5.7'; // bei jeder Veröffentlichung erhöhen (auch CACHE in sw.js)
 const TRAY = 6, BOWLS = 4, BOWL_PRICE = 650, BOOSTER_PRICE = 200;
 const SAVE_KEY = 'blubberbucht-v1';
 const $ = s => document.querySelector(s);
@@ -360,6 +360,8 @@ function pick(uid) {
 }
 
 function onBoardTap(e) {
+  // Sicherheitsnetz: verlorenes Level ohne offenes Fenster -> Fenster wieder zeigen
+  if (G && G.over && G.lostReason && $('#modal').hidden) { loseLevel(G.lostReason); return; }
   if (!G || G.over || G.paused) return;
   const bEl = e.target.closest('.bubble');
   if (!bEl) return;
@@ -591,24 +593,26 @@ function winLevel() {
 
 function loseLevel(reason) {
   clearInterval(timerId);
+  if (G) G.lostReason = reason;
   Sfx.lose(); vib([60, 40, 60]);
   const L = G.level;
   const acts = {
     retry: () => startLevel(L),
     menu: () => { hideModal(); openMenu(); },
-    brush: () => { hideModal(); G.over = false; useBooster('brush'); startTimer(); },
+    brush: () => { hideModal(); G.over = false; G.lostReason = null; useBooster('brush'); startTimer(); },
     buybrush: () => {
-      if (!spend(BOOSTER_PRICE)) return noCoins(BOOSTER_PRICE);
+      if (!spend(BOOSTER_PRICE)) return;
       save.boosters.brush = (save.boosters.brush || 0) + 1; persist();
-      hideModal(); G.over = false; useBooster('brush'); startTimer();
+      hideModal(); G.over = false; G.lostReason = null; useBooster('brush'); startTimer();
     },
-    time: () => { hideModal(); G.over = false; G.extraTime = true; G.timeLeft += 20; startTimer(); renderHUD(); },
+    time: () => { hideModal(); G.over = false; G.lostReason = null; G.extraTime = true; G.timeLeft += 20; startTimer(); renderHUD(); },
   };
   let opts = '';
   if (reason === 'tray') {
     if (save.boosters.brush) opts += `<button class="btn orange" data-act="brush">Aufräumen nutzen (${save.boosters.brush})</button>`;
     // Nur „Aufräumen“ hilft: es holt Tiere aus der Ablage. Wirbel/Kescher leeren die Ablage nicht.
-    else opts += `<button class="btn orange" data-act="buybrush">Aufräumen kaufen & nutzen (${COIN} ${BOOSTER_PRICE})</button>`;
+    else if (save.coins >= BOOSTER_PRICE) opts += `<button class="btn orange" data-act="buybrush">Aufräumen kaufen & nutzen (${COIN} ${BOOSTER_PRICE})</button>`;
+    else opts += `<button class="btn orange" disabled>Aufräumen kaufen (${COIN} ${BOOSTER_PRICE})<small class="need">Du hast nur ${save.coins} Münzen</small></button>`;
   } else if (!G.extraTime) {
     opts += `<button class="btn orange" data-act="time">+20 Sekunden</button>`;
   }
