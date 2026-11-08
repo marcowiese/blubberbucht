@@ -491,3 +491,10 @@ button { font-family: inherit; cursor: pointer; border: 0; color: inherit; touch
   #screen-aquarium .album { margin-top: calc(13 * var(--u)); }
 }
 body.no-anim .bubble, body.no-anim .bubble .cr { transition: none !important; }
+/* Album: Spalten dürfen schrumpfen, lange Namen umbrechen */
+.album { grid-template-columns: repeat(4, minmax(0, 1fr)); overflow-x: hidden; }
+.album.cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.acard b { overflow-wrap: anywhere; hyphens: auto; }
+@media (orientation: landscape) and (min-aspect-ratio: 5/4) {
+  #screen-aquarium .album:not(.cards) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}

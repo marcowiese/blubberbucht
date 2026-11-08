@@ -1,7 +1,7 @@
 // Blubberbucht – Spiellogik
 'use strict';
 
-const APP_VERSION = '1.12.2'; // nicht von Hand ändern: tools/release.sh <version>
+const APP_VERSION = '1.13.0'; // nicht von Hand ändern: tools/release.sh <version>
 const TRAY = 6, BOWLS = 4, BOWL_PRICE = 650, BOOSTER_PRICE = 200;
 const SAVE_KEY = 'blubberbucht-v1';
 const $ = s => document.querySelector(s);
@@ -25,8 +25,9 @@ const vib = ms => { if (canVibrate && save.vib) { try { navigator.vibrate(ms); }
 
 // ---------- Level-Aufbau ----------
 // Schwierigkeit: jedes 5. Level „Schwer“, jedes 10. „Extrem schwer“
-const DIFF = { s: .5, smax: 5, sl: 60, t0: 9, t: .35, tmax: 18, hardS: 1, hardT: 3, extS: 2, extT: 5 };
-const unlockedCount = L => Math.min(SPECIES.length, 3 + Math.floor((L - 1) * .6));
+const DIFF = { s: .5, smax: 6, sl: 60, t0: 9, t: .35, tmax: 18, hardS: 2, hardT: 3, extS: 3, extT: 5 };
+// Neue Art alle 3 Level (Level 1: 3 Arten). Fantasietiere kommen ab ca. Level 67.
+const unlockedCount = L => Math.min(SPECIES.length, 3 + Math.floor((L - 1) / 3));
 const tierOf = L => L >= 10 && L % 10 === 0 ? 2 : L >= 5 && L % 5 === 0 ? 1 : 0;
 const TIER_NAME = ['', 'Schwer', 'Extrem schwer'];
 function levelParams(L) {
