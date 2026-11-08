@@ -1,7 +1,7 @@
 // Blubberbucht – Spiellogik
 'use strict';
 
-const APP_VERSION = '1.13.2'; // nicht von Hand ändern: tools/release.sh <version>
+const APP_VERSION = '1.13.3'; // nicht von Hand ändern: tools/release.sh <version>
 const TRAY = 6, BOWLS = 4, BOWL_PRICE = 650, BOOSTER_PRICE = 200;
 const SAVE_KEY = 'blubberbucht-v1';
 const $ = s => document.querySelector(s);
@@ -41,15 +41,15 @@ function levelParams(L) {
   };
 }
 
-const COLS_X = [17.5, 50, 82.5], R0 = 16.2;
+const COLS_X = [17.5, 50, 82.5], R0 = 16.2, PLAY_H = 130;
 
 let G = null;
 
 function genLevel(L) {
   const p = levelParams(L);
   const board = $('#board');
-  const A = clamp(board.clientHeight / Math.max(1, board.clientWidth), .85, 1.6);
-  const H = 100 * A, T = p.T;
+  // Feste Spielfeldhöhe: Auf jedem Gerät und in jeder Ausrichtung sind gleich viele Blasen sichtbar.
+  const H = PLAY_H, T = p.T;
   // jede Blase startet mit genau 3 Tieren
   const caps = Array(T).fill(3);
   const bubbles = caps.map((cap, i) => ({ id: i, cap, items: [], r: R0 * [0, .74, .88, 1][cap], jx: (Math.random() - .5) * 4, x: 50, y: -50 }));
@@ -297,7 +297,6 @@ function onResize() {
   if (!G || $('#screen-game').hidden) return;
   finishFlights();
   const board = $('#board');
-  if (board.clientWidth > 0) G.H = 100 * clamp(board.clientHeight / board.clientWidth, .85, 1.6);
   relayout();
   document.body.classList.add('no-anim');
   render();
