@@ -221,7 +221,7 @@ const POSTCARDS = [
       ${pcBokeh(8, 71, '#cfe0ff')}${pcVignette('p6')}`,
   },
   {
-    level: 70, title: 'Seppis Seegraswald',
+    level: 70, img: 'postcards/postkarte-70.jpg', title: 'Seppis Seegraswald',
     text: 'Seppi Seepferdchen kennt jeden Halm im Seegraswald. Heute zeigt er Garnele Gari sein Lieblingsversteck.',
     svg: () => `${pcBase('p7', { top: '#b8f4d0', mid: '#46b89a', bottom: '#1d7a6a', sand: '#efd8a0', sandDark: '#c4a060', reef: '#1a5a4a', seed: 71 })}
       ${pcKelp(10, 70, '#2a8a4a', 6)}${pcKelp(24, 84, '#3aa860', -5)}${pcKelp(40, 60, '#2a8a4a', 4)}${pcKelp(120, 76, '#3aa860', -6)}${pcKelp(136, 88, '#2a8a4a', 5)}${pcKelp(152, 64, '#46b56e', -4)}
@@ -231,7 +231,7 @@ const POSTCARDS = [
       ${pcBokeh(8, 74)}${pcVignette('p7')}`,
   },
   {
-    level: 80, title: 'Rocco und die große Strömung',
+    level: 80, img: 'postcards/postkarte-80.jpg', title: 'Rocco und die große Strömung',
     text: 'Wenn die Strömung kommt, breitet Rochen Rocco seine Flügel aus – und alle dürfen mitgleiten.',
     svg: () => `${pcBase('p8', { top: '#a8e8ff', mid: '#3aa0e0', bottom: '#165ea8', reef: '#1a5a8a', seed: 81 })}
       <g stroke="#fff" stroke-width=".7" fill="none" opacity=".35"><path d="M0 30 Q40 22 80 30 T160 28"/><path d="M0 44 Q40 36 80 44 T160 42"/><path d="M0 58 Q40 50 80 58 T160 56"/></g>
@@ -241,7 +241,7 @@ const POSTCARDS = [
       ${pcBokeh(8, 84)}${pcVignette('p8')}`,
   },
   {
-    level: 90, title: 'Mias Perlenschatz',
+    level: 90, img: 'postcards/postkarte-90.jpg', title: 'Mias Perlenschatz',
     text: 'Muschel Mia hütet die schönste Perle der Bucht. Igel Igor passt auf, dass niemand schummelt.',
     svg: () => `${pcBase('p9', { top: '#c8e8ff', mid: '#5a9ae0', bottom: '#2a58a8', sand: '#f2dcaa', sandDark: '#c8a464', reef: '#2a4a8a', seed: 91 })}
       <defs><radialGradient id="p9g" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#fff" stop-opacity=".8"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient></defs>
@@ -252,7 +252,7 @@ const POSTCARDS = [
       ${pcBokeh(10, 94, '#fff6e0')}${pcVignette('p9')}`,
   },
   {
-    level: 100, title: 'Fluffis Regenbogenriff',
+    level: 100, img: 'postcards/postkarte-100.jpg', title: 'Fluffis Regenbogenriff',
     text: 'Level 100! Wo Fluffi Einhornfisch schwimmt, leuchtet das Riff in allen Farben des Regenbogens.',
     svg: () => `${pcBase('p10', { top: '#ffe0f4', mid: '#9ab8ff', bottom: '#5a6ad8', sand: '#ffe8c8', sandDark: '#e0b0c0', reef: '#6a4aa8', seed: 101 })}
       <g fill="none" stroke-width="3" opacity=".45" stroke-linecap="round">${['#ff6f8f', '#ffb84a', '#fff36b', '#7be05a', '#4fb8ff', '#a271ff'].map((c, i) => `<path d="M10 ${78 - i * 3} Q80 ${10 - i * 3} 150 ${78 - i * 3}" stroke="${c}"/>`).join('')}</g>
@@ -276,7 +276,7 @@ const POSTCARDS = [
       <rect width="160" height="100" fill="url(#p11v)"/>`,
   },
   {
-    level: 120, title: 'Krapfis süßes Fest',
+    level: 120, img: 'postcards/postkarte-120.jpg', title: 'Krapfis süßes Fest',
     text: 'Krapfi Donutfisch feiert Geburtstag! Kaugummi-Kiki bringt die größte Blase mit, die die Bucht je gesehen hat.',
     svg: () => `${pcBase('p12', { top: '#ffe8f4', mid: '#ffb3d9', bottom: '#d870b0', sand: '#fff0d8', sandDark: '#e8b8b0', reef: '#a85a90', seed: 121 })}
       ${Array.from({ length: 40 }, (_, i) => { const r = pcRand(130 + i); const cols = ['#fff36b', '#6fe0ff', '#7be05a', '#ffffff', '#a271ff', '#ff6f8f']; return `<rect x="${(r() * 160).toFixed(1)}" y="${(r() * 80).toFixed(1)}" width="2.4" height="1" rx=".5" fill="${cols[i % 6]}" transform="rotate(${(r() * 180).toFixed(0)} ${(r() * 160).toFixed(1)} ${(r() * 80).toFixed(1)})"/>`; }).join('')}
@@ -286,7 +286,7 @@ const POSTCARDS = [
       ${pcBokeh(12, 124, '#fff0f8')}${pcVignette('p12')}`,
   },
   {
-    level: 130, title: 'König Krabbos Muschelthron',
+    level: 130, img: 'postcards/postkarte-130.jpg', title: 'König Krabbos Muschelthron',
     text: 'Einmal im Jahr hält König Krabbo Hof. Wer drei gleiche Tiere sortiert, darf sich etwas wünschen.',
     svg: () => `${pcBase('p13', { top: '#fff2c0', mid: '#5ab0e0', bottom: '#1d6ab0', sand: '#f6dc9c', sandDark: '#d2a85c', reef: '#2a5a8a', seed: 131 })}
       <g>${pcRock(80, 84, 30, 12, '#c8a0e0')}<path d="M58 80 Q80 40 102 80Z" fill="#f6c9ff" stroke="#b08ac0" stroke-width=".8"/>${[-14, -7, 0, 7, 14].map(d => `<path d="M80 80 L${80 + d * 1.4} ${50 + Math.abs(d)}" stroke="#b08ac0" stroke-width=".6"/>`).join('')}</g>
@@ -296,7 +296,7 @@ const POSTCARDS = [
       ${pcBokeh(12, 134, '#fff6c0')}${pcVignette('p13')}`,
   },
   {
-    level: 140, title: 'Wolkis Himmelsmeer',
+    level: 140, img: 'postcards/postkarte-140.jpg', title: 'Wolkis Himmelsmeer',
     text: 'Ganz oben, wo das Meer den Himmel berührt, schwebt Wolki Wolkenqualle – und lässt es Bläschen regnen.',
     svg: () => `
       <defs><linearGradient id="p14" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d8f0ff"/><stop offset=".5" stop-color="#8ad0ff"/><stop offset="1" stop-color="#3a90e0"/></linearGradient>
@@ -310,7 +310,7 @@ const POSTCARDS = [
       ${pcBokeh(10, 144)}<rect width="160" height="100" fill="url(#p14v)"/>`,
   },
   {
-    level: 150, title: 'Stupsis Sternschnuppennacht',
+    level: 150, img: 'postcards/postkarte-150.jpg', title: 'Stupsis Sternschnuppennacht',
     text: 'Level 150 – du bist eine Legende der Blubberbucht! Stupsi Sternschnuppe fliegt eine Ehrenrunde nur für dich.',
     svg: () => `${pcBase('p15', { top: '#2a2a7a', mid: '#1a1a5a', bottom: '#0a0a30', sand: '#4a4a8a', sandDark: '#2a2a5a', rays: .06, caustics: .08, reef: '#0a0a30', seed: 151 })}
       ${Array.from({ length: 30 }, (_, i) => { const r = pcRand(160 + i); return `<circle cx="${(r() * 160).toFixed(1)}" cy="${(2 + r() * 40).toFixed(1)}" r="${(.3 + r() * .7).toFixed(2)}" fill="#fff" opacity="${(.5 + r() * .5).toFixed(2)}"/>`; }).join('')}
