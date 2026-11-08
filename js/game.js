@@ -1,7 +1,7 @@
 // Blubberbucht – Spiellogik
 'use strict';
 
-const APP_VERSION = '1.5.5'; // bei jeder Veröffentlichung erhöhen (auch CACHE in sw.js)
+const APP_VERSION = '1.5.6'; // bei jeder Veröffentlichung erhöhen (auch CACHE in sw.js)
 const TRAY = 6, BOWLS = 4, BOWL_PRICE = 650, BOOSTER_PRICE = 200;
 const SAVE_KEY = 'blubberbucht-v1';
 const $ = s => document.querySelector(s);
@@ -19,27 +19,9 @@ function loadSave() {
   } catch { return structuredClone(DEFAULTS); }
 }
 function persist() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch {} }
-// Vibration: Android nutzt navigator.vibrate. Safari auf dem iPhone kennt das nicht –
-// dort erzeugt das Antippen eines iOS-Schalters (<input switch>, ab iOS 18) einen kurzen Haptik-Tick.
-// Der Schalter steckt im Label, wird kurz eingehängt, angeklickt und wieder entfernt.
+// Vibration nur dort, wo der Browser sie unterstützt (Android). Auf iPhone/iPad gibt es keine Option dafür.
 const canVibrate = typeof navigator.vibrate === 'function';
-function iosHaptic() {
-  const label = document.createElement('label');
-  label.setAttribute('aria-hidden', 'true');
-  label.style.display = 'none';
-  const box = document.createElement('input');
-  box.type = 'checkbox';
-  box.setAttribute('switch', '');
-  label.appendChild(box);
-  document.head.appendChild(label);
-  label.click();
-  label.remove();
-}
-const vib = ms => {
-  if (!save.vib) return;
-  if (canVibrate) { try { navigator.vibrate(ms); } catch {} }
-  else { try { iosHaptic(); } catch {} }
-};
+const vib = ms => { if (canVibrate && save.vib) { try { navigator.vibrate(ms); } catch {} } };
 
 // ---------- Level-Aufbau ----------
 // Schwierigkeit: jedes 5. Level „Schwer“, jedes 10. „Extrem schwer“
@@ -680,9 +662,7 @@ function openSettings() {
     <div class="ribbon">Einstellungen</div>
     <label class="toggle"><span>🎵 Musik</span><input type="checkbox" data-set="music" ${save.music ? 'checked' : ''}><i></i></label>
     <label class="toggle"><span>🔊 Soundeffekte</span><input type="checkbox" data-set="sound" ${save.sound ? 'checked' : ''}><i></i></label>
-    <label class="toggle"><span>📳 Vibration</span><input type="checkbox" data-set="vib" ${save.vib ? 'checked' : ''}><i></i></label>
-    <button class="btn ghost small-btn" data-act="vibtest">📳 Vibration testen</button>
-    ${canVibrate ? '' : '<p class="version">Hinweis: Auf iPhone und iPad erlaubt Apple Web-Apps keine Vibration. Dort funktioniert sie leider nur in einer App aus dem App Store.</p>'}
+    ${canVibrate ? `<label class="toggle"><span>📳 Vibration</span><input type="checkbox" data-set="vib" ${save.vib ? 'checked' : ''}><i></i></label>` : ''}
     <div class="help">
       <b>So geht's:</b> Tippe Tiere in den Blasen an. Passt ein Tier zu einer Karte unter den Gläsern, schwimmt es ins Glas – sonst landet es in der Ablage.
       Drei gleiche im Glas = gesammelt! Leere Blasen platzen und von oben rutschen neue nach. Ist die Ablage voll, ist das Level verloren.
@@ -692,7 +672,6 @@ function openSettings() {
     ${inGame ? '' : `<button class="btn link" data-act="reset">Fortschritt zurücksetzen</button>`}
     <p class="version">Blubberbucht v${APP_VERSION} · von Hase Games</p>`, {
     close: hideModal,
-    vibtest: () => { if (!save.vib) { toast('Vibration ist ausgeschaltet.'); return; } vib(200); },
     restart: () => startLevel(G.level),
     menu: () => { hideModal(); openMenu(); },
     reset: () => showModal(`<div class="ribbon red">Wirklich?</div><p>Level, Booster und Aquarium werden gelöscht.</p>
