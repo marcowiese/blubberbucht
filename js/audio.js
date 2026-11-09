@@ -83,6 +83,38 @@ const Sfx = (() => {
   function stopMusic() { if (player) player.pause(); }
   document.addEventListener('visibilitychange', () => { if (document.hidden) stopMusic(); else startMusic(); });
 
+  // Warmer Glockenton (Grundton + leise Obertöne), teils in den Hall geschickt
+  function chime(m, delay, vol = .1, dur = 1.6, rev = .35) {
+    if (!enabled) return;
+    const a = ac(); if (!a) return;
+    const t = a.currentTime + delay, f = hz(m);
+    const out = a.createGain(); out.gain.value = 1;
+    const send = a.createGain(); send.gain.value = rev;
+    out.connect(sfxBus); out.connect(send); send.connect(reverb);
+    for (const [mul, v, d, det] of [[1, 1, dur, 0], [1, .5, dur * .9, 6], [2, .22, dur * .5, 0], [3.01, .07, dur * .25, 0]]) {
+      const o = a.createOscillator(), g = a.createGain();
+      o.type = 'sine'; o.frequency.value = f * mul; o.detune.value = det;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol * v, t + .012);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+      o.connect(g).connect(out); o.start(t); o.stop(t + d + .05);
+    }
+  }
+  // weiche Fläche, die langsam an- und abschwillt
+  function swell(ms, delay, vol = .03, dur = 2.2) {
+    if (!enabled) return;
+    const a = ac(); if (!a) return;
+    const t = a.currentTime + delay, lp = a.createBiquadFilter(), g = a.createGain(), send = a.createGain();
+    lp.type = 'lowpass'; lp.frequency.value = 1400;
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + .35); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    send.gain.value = .5;
+    g.connect(lp); lp.connect(sfxBus); lp.connect(send); send.connect(reverb);
+    for (const m of ms) for (const det of [-7, 7]) {
+      const o = a.createOscillator(); o.type = 'triangle'; o.frequency.value = hz(m); o.detune.value = det;
+      o.connect(g); o.start(t); o.stop(t + dur + .05);
+    }
+  }
+
   return {
     set enabled(v) { enabled = v; }, get enabled() { return enabled; },
     set music(v) { musicOn = v; v ? (ctx && startMusic()) : stopMusic(); },
@@ -113,8 +145,15 @@ const Sfx = (() => {
     },
     burst() { noise(.06, { f1: 4000, f2: 1500, q: .8, vol: .08 }); blub(900, .01, .08); },
     match() { [72, 76, 79, 84].forEach((m, i) => sweep(hz(m), hz(m) * 1.002, .5, { type: 'sine', vol: .1, delay: i * .08, attack: .01 })); [.0, .08].forEach(d => blub(1000 + Math.random() * 500, d + .3, .05)); },
-    win() { [72, 76, 79, 84, 79, 84, 88].forEach((m, i) => sweep(hz(m), hz(m), .45, { type: 'triangle', vol: .11, delay: i * .13, attack: .01 })); },
-    lose() { [67, 64, 60, 55].forEach((m, i) => sweep(hz(m), hz(m) * .985, .5, { type: 'triangle', vol: .1, delay: i * .2, attack: .02 })); },
+    // Gewinn: aufsteigende, glockige Dur-Septnonen-Figur mit Hall, warme Fläche und ein paar Bläschen
+    win() {
+      [72, 76, 79, 83, 86].forEach((m, i) => chime(m, i * .085, .085, 1.5));
+      swell([60, 64, 67, 71, 74], .28, .028, 2.4);
+      chime(84, .55, .07, 2.2, .5); chime(88, .62, .045, 2, .55);
+      [.05, .2, .38, .6, .85].forEach(d => blub(900 + Math.random() * 900, d, .035, .07));
+    },
+    // Verloren: sanft absteigend statt „Fehler-Tröte“
+    lose() { [71, 67, 64, 62].forEach((m, i) => chime(m, i * .16, .07, 1.3, .3)); swell([50, 57, 62], .3, .02, 1.8); },
     booster() { noise(.4, { f1: 400, f2: 4000, q: 2, vol: .12 }); sweep(400, 1600, .35, { vol: .08, delay: .05 }); },
     error() { sweep(220, 160, .14, { type: 'triangle', vol: .12 }); },
     click() { sweep(900, 1300, .04, { vol: .1 }); },
