@@ -1,7 +1,7 @@
 // Blubberbucht – Spiellogik
 'use strict';
 
-const APP_VERSION = '1.21.0'; // nicht von Hand ändern: tools/release.sh <version>
+const APP_VERSION = '1.21.1'; // nicht von Hand ändern: tools/release.sh <version>
 const TRAY = 6, BOWLS = 4, BOWL_PRICE = 650, BOOSTER_PRICE = 200;
 const SAVE_KEY = 'blubberbucht-v1';
 const $ = s => document.querySelector(s);
@@ -30,6 +30,8 @@ const DIFF = { s: .5, smax: 5, sl: 60, t0: 9, t: .35, tmax: 18, hardS: 1, hardT:
 const unlockedCount = L => Math.min(SPECIES.length, 3 + Math.floor((L - 1) / 3));
 const tierOf = L => L >= 10 && L % 10 === 0 ? 2 : L >= 5 && L % 5 === 0 ? 1 : 0;
 const TIER_NAME = ['', 'Schwer', 'Extrem schwer'];
+// Zeit-Challenge: Sekunden pro Tier sinken mit dem Level (Level 6: ca. 2,0 s → ab Level 60: 1,35 s), plus 10 s Puffer
+function timeLimit(L, n) { return Math.ceil(n * Math.max(1.35, 2.1 - L * .0125)) + 10; }
 function levelParams(L) {
   const tier = tierOf(L);
   const baseS = Math.min(3 + Math.floor(L * DIFF.s), DIFF.smax + Math.floor(L / DIFF.sl));
@@ -80,7 +82,7 @@ function genLevel(L) {
   return { level: L, H, bubbles, cols, cr, nextB: bubbles.length, total: n, collected: 0, species: chosen, queue: shuffle(q),
     bowls: Array.from({ length: BOWLS }, (_, i) => ({ sp: null, items: [], completing: false, locked: i >= 2 })),
     tray: [], pending: 0, over: false, paused: false, timed: p.timed, tier: p.tier,
-    timeLeft: p.timed ? Math.ceil(n * 2.4) + 15 : 0, extraTime: false, usedBoosters: 0 };
+    timeLeft: p.timed ? timeLimit(L, n) : 0, extraTime: false, usedBoosters: 0 };
 }
 
 // ---------- Hilfsfunktionen zum Zustand ----------
@@ -818,11 +820,11 @@ function openTransfer(back) {
   });
 }
 
-// ---------- Entwicklermodus (versteckt: 5× auf die Versionsnummer im Hauptmenü tippen) ----------
+// ---------- Entwicklermodus (versteckt: 10× auf die Versionsnummer im Hauptmenü tippen) ----------
 let devTaps = 0, devTimer = null;
 function devTap() {
-  devTaps++; clearTimeout(devTimer); devTimer = setTimeout(() => devTaps = 0, 1500);
-  if (devTaps < 5) return;
+  devTaps++; clearTimeout(devTimer); devTimer = setTimeout(() => devTaps = 0, 2000);
+  if (devTaps < 10) return;
   devTaps = 0; save.dev = !save.dev; persist();
   toast(save.dev ? '🛠 Entwicklermodus an – zu finden unter ⚙' : 'Entwicklermodus aus');
   Sfx.click();
