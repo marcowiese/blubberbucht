@@ -1,7 +1,7 @@
 // Blubberbucht – Spiellogik
 'use strict';
 
-const APP_VERSION = '1.20.3'; // nicht von Hand ändern: tools/release.sh <version>
+const APP_VERSION = '1.21.0'; // nicht von Hand ändern: tools/release.sh <version>
 const TRAY = 6, BOWLS = 4, BOWL_PRICE = 650, BOOSTER_PRICE = 200;
 const SAVE_KEY = 'blubberbucht-v1';
 const $ = s => document.querySelector(s);
@@ -745,6 +745,7 @@ function openSettings() {
       <b>So geht's:</b> Tippe Tiere in den Blasen an. Passt ein Tier zu einer Karte unter den Gläsern, schwimmt es ins Glas – sonst landet es in der Ablage.
       Drei gleiche im Glas = gesammelt! Leere Blasen platzen und von oben rutschen neue nach. Ist die Ablage voll, ist das Level verloren.
     </div>
+    ${save.dev ? `<button class="btn dev" data-act="dev">🛠 Entwicklermodus</button>` : ''}
     ${inGame ? `<button class="btn blue" data-act="tutorial">❓ Anleitung zeigen</button><button class="btn orange" data-act="restart">Level neu starten</button><button class="btn ghost" data-act="menu">Hauptmenü</button>` : ''}
     <button class="btn green" data-act="close">Weiter</button>
     ${inGame ? '' : `<button class="btn blue" data-act="transfer">💾 Spielstand übertragen</button><button class="btn link" data-act="reset">Fortschritt zurücksetzen</button>`}
@@ -753,6 +754,7 @@ function openSettings() {
     restart: () => startLevel(G.level),
     tutorial: () => { hideModal(); tutStart(); },
     transfer: () => openTransfer(draw),
+    dev: () => openDev(draw),
     menu: () => { hideModal(); openMenu(); },
     reset: () => showModal(`<div class="ribbon red">Wirklich?</div><p>Level, Booster und Aquarium werden gelöscht.</p>
       <button class="btn orange" data-act="yes">Ja, zurücksetzen</button><button class="btn green" data-act="no">Abbrechen</button>`, {
@@ -813,6 +815,52 @@ function openTransfer(back) {
         no: () => openTransfer(back),
       });
     },
+  });
+}
+
+// ---------- Entwicklermodus (versteckt: 5× auf die Versionsnummer im Hauptmenü tippen) ----------
+let devTaps = 0, devTimer = null;
+function devTap() {
+  devTaps++; clearTimeout(devTimer); devTimer = setTimeout(() => devTaps = 0, 1500);
+  if (devTaps < 5) return;
+  devTaps = 0; save.dev = !save.dev; persist();
+  toast(save.dev ? '🛠 Entwicklermodus an – zu finden unter ⚙' : 'Entwicklermodus aus');
+  Sfx.click();
+}
+function openDev(back) {
+  const inGame = !$('#screen-game').hidden && G && !G.over;
+  showModal(`<div class="ribbon dev">🛠 Entwicklermodus</div>
+    <div class="devrow"><label>Level</label><input id="dev-level" type="number" min="1" max="999" value="${inGame ? G.level : save.level}" inputmode="numeric">
+      <button class="btn green" data-act="play">Spielen</button></div>
+    <label class="devcheck"><input id="dev-setlevel" type="checkbox"> auch als Fortschritt übernehmen (Levelkarte, Postkarten)</label>
+    <div class="devrow"><label>Münzen</label><input id="dev-coins" type="number" min="0" max="999999" value="${save.coins}" inputmode="numeric">
+      <button class="btn blue" data-act="coins">Setzen</button></div>
+    <button class="btn blue" data-act="boosters">+5 von jedem Booster</button>
+    <button class="btn blue" data-act="unlock">Alle Arten entdecken & fangen</button>
+    ${inGame ? `<div class="devrow two"><button class="btn green" data-act="win">Level gewinnen</button><button class="btn orange" data-act="lose">Level verlieren</button></div>
+      <button class="btn blue" data-act="bowls">Alle Aquarien öffnen</button>` : ''}
+    <div class="devrow two"><button class="btn ghost" data-act="tut">Tutorial zurücksetzen</button><button class="btn ghost" data-act="daily">Tagesbonus zurücksetzen</button></div>
+    <button class="btn ghost" data-act="back">Zurück</button>
+    <button class="btn link" data-act="off">Entwicklermodus ausschalten</button>`, {
+    back,
+    play: () => {
+      const L = clamp(parseInt($('#dev-level').value) || 1, 1, 999);
+      if ($('#dev-setlevel').checked) { save.level = L; persist(); }
+      startLevel(L);
+    },
+    coins: () => { save.coins = clamp(parseInt($('#dev-coins').value) || 0, 0, 999999); persist(); renderCoins(); toast(`Münzen: ${save.coins}`); },
+    boosters: () => { for (const k of ['net', 'brush', 'shuffle']) save.boosters[k] = (save.boosters[k] || 0) + 5; persist(); if (G) renderHUD(); toast('+5 Booster'); },
+    unlock: () => { save.seen = SPECIES.length; SPECIES.forEach(sp => save.caught[sp.id] = Math.max(save.caught[sp.id] || 0, 3)); persist(); toast('Alle Arten freigeschaltet'); },
+    win: () => {
+      hideModal();
+      commit(() => { G.bubbles.forEach(b => b.items = []); G.tray = []; G.bowls.forEach(w => { w.items = []; w.completing = false; }); G.pending = 0; G.collected = G.total; });
+      clearFx(); afterChange();
+    },
+    lose: () => { hideModal(); G.over = true; loseLevel(G.timed ? 'time' : 'tray'); },
+    bowls: () => { hideModal(); commit(() => { G.bowls.forEach(w => w.locked = false); settle(); }); afterChange(); },
+    tut: () => { save.tutorialDone = false; persist(); toast('Tutorial startet beim nächsten Level 1'); },
+    daily: () => { save.daily = { last: '', streak: 0 }; persist(); toast('Tagesbonus kommt beim nächsten Menü-Aufruf'); },
+    off: () => { save.dev = false; persist(); hideModal(); toast('Entwicklermodus aus'); },
   });
 }
 
@@ -1065,6 +1113,7 @@ function init() {
   buildSpeciesDefs();
   document.querySelectorAll('.coin-pill .ci').forEach(e => e.innerHTML = COIN);
   $('#menu-version').textContent = `v${APP_VERSION}`;
+  $('#menu-version').addEventListener('click', devTap);
   Sfx.enabled = save.sound;
   Sfx.music = save.music;
   document.querySelectorAll('[data-booster]').forEach(b => {

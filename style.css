@@ -547,3 +547,14 @@ body.no-anim .bubble, body.no-anim .bubble .cr { transition: none !important; }
 /* Angedeutete nächste Blase: sichtbar, aber deutlich noch nicht aktiv */
 .bubble.peek { filter: saturate(.5) brightness(.82); opacity: .75; pointer-events: none; }
 .bubble.peek .cr { animation: none !important; }
+
+/* ---------- Entwicklermodus ---------- */
+.menu-version { pointer-events: auto; cursor: default; padding: calc(2 * var(--u)) 0; }
+.ribbon.dev { background: linear-gradient(#7a8aa8, #4a5a78); box-shadow: 0 calc(1 * var(--u)) 0 #2a3448; }
+.btn.dev { background: linear-gradient(#7a8aa8, #4a5a78); box-shadow: 0 calc(1.2 * var(--u)) 0 #2a3448; }
+.devrow { display: flex; gap: calc(2 * var(--u)); align-items: center; margin-top: calc(2.4 * var(--u)); }
+.devrow label { font-weight: 700; font-size: calc(4.4 * var(--u)); min-width: calc(17 * var(--u)); text-align: left; }
+.devrow input { flex: 1; min-width: 0; font: 700 calc(5 * var(--u)) var(--font); color: #1f4f8f; padding: calc(2 * var(--u)); border-radius: calc(3 * var(--u)); border: calc(.5 * var(--u)) solid #8fd3ff; background: #f4fbff; user-select: text; -webkit-user-select: text; }
+.devrow .btn { width: auto; margin: 0; padding: calc(2.4 * var(--u)) calc(4 * var(--u)); font-size: calc(4.4 * var(--u)); }
+.devrow.two .btn { flex: 1; }
+.devcheck { display: flex; gap: calc(2 * var(--u)); align-items: center; text-align: left; font-size: calc(3.6 * var(--u)); margin-top: calc(1.6 * var(--u)); }
