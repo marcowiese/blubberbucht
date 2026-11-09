@@ -573,3 +573,12 @@ body.no-anim .bubble, body.no-anim .bubble .cr { transition: none !important; }
 .worry.t2 .wf { animation-name: tremble2; }
 @keyframes tremble2 { from { transform: translateX(-2.5%) rotate(-3deg); } to { transform: translateX(2.5%) rotate(3deg); } }
 @keyframes sweat { 0% { opacity: 0; transform: translateY(0); } 15% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; transform: translateY(14px); } }
+/* Handy: obere Leiste etwas kompakter, damit mehr Platz für die Blasen bleibt */
+@media (orientation: portrait) and (max-width: 599px) {
+  .hud { min-height: calc(12 * var(--u)); padding-top: calc(1 * var(--u)); }
+  .bowls { height: calc(16.5 * var(--u)); }
+  .card { height: calc(11 * var(--u)); }
+  .tray { margin-top: calc(1.4 * var(--u)); }
+  .boosters { padding: calc(1.6 * var(--u)) 0 calc(2 * var(--u)); }
+  .booster { width: calc(15.5 * var(--u)); height: calc(15.5 * var(--u)); }
+}

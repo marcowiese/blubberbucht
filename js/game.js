@@ -1,7 +1,7 @@
 // Blubberbucht – Spiellogik
 'use strict';
 
-const APP_VERSION = '1.22.0'; // nicht von Hand ändern: tools/release.sh <version>
+const APP_VERSION = '1.22.1'; // nicht von Hand ändern: tools/release.sh <version>
 const TRAY = 6, BOWLS = 4, BOWL_PRICE = 650, BOOSTER_PRICE = 200;
 const SAVE_KEY = 'blubberbucht-v1';
 const $ = s => document.querySelector(s);
@@ -43,7 +43,7 @@ function levelParams(L) {
   };
 }
 
-const COLS_X = [17.5, 50, 82.5], R0 = 17.4, PLAY_H = 103;
+const COLS_X = [17.5, 50, 82.5], R0 = 17.4, PLAY_H = 103, PLAY_H_MIN = 92, PLAY_H_MAX = 110;
 
 let G = null;
 const CAP_R = { 1: .72, 2: .84, 3: 1, 4: 1.14, 5: 1.25 };   // Blasengröße je nach Anzahl Tiere
@@ -62,13 +62,16 @@ function makeCaps(total) {
 function genLevel(L) {
   const p = levelParams(L);
   const board = $('#board');
-  // Feste Spielfeldhöhe: Auf jedem Gerät und in jeder Ausrichtung sind gleich viele Blasen sichtbar.
-  const H = PLAY_H, T = p.T;
+  // Spielfeldform wird beim Levelstart an den Bildschirm angepasst (damit die Blasen die volle Breite füllen),
+  // in engen Grenzen – und bleibt dann bis zum Levelende fest, Drehen bringt also keinen Vorteil.
+  const bw = board.clientWidth, bh = board.clientHeight;
+  const H = bw > 0 ? clamp(Math.round(100 * bh / bw), PLAY_H_MIN, PLAY_H_MAX) : PLAY_H, T = p.T;
+  const rk = Math.min(1, H / PLAY_H);   // flacheres Feld -> Blasen etwas kleiner, damit gleich viele hineinpassen
   // Blasen mit 2 (klein), 3 (mittel) oder 4–5 Tieren (groß) – zusammen genau T*3 Tiere
   const caps = makeCaps(T * 3);
   // verschiedene Blasengrößen; Startpositionen als lockerer Haufen, die Physik ordnet sie danach
   const bubbles = caps.map((cap, i) => {
-    const r = R0 * CAP_R[cap] * (.96 + Math.random() * .08);
+    const r = R0 * rk * CAP_R[cap] * (.96 + Math.random() * .08);
     return { id: i, cap, items: [], r, x: r + Math.random() * (100 - 2 * r), y: H - r - i * 9 - Math.random() * 6 };
   });
   // Spalten: Index 0 = ganz unten, weiter oben warten Blasen außerhalb des Bildes
@@ -91,7 +94,7 @@ function genLevel(L) {
   // Zielkarten-Stapel: feste, zufällige Reihenfolge aller Dreiergruppen (hilft dem Spieler nicht)
   const counts = {}; Object.values(cr).forEach(c => counts[c.sp] = (counts[c.sp] || 0) + 1);
   const q = []; for (const sp in counts) for (let i = 0; i < counts[sp] / 3; i++) q.push(sp);
-  return { level: L, H, bubbles, cols, cr, nextB: bubbles.length, total: n, collected: 0, species: chosen, queue: shuffle(q),
+  return { level: L, H, rk, bubbles, cols, cr, nextB: bubbles.length, total: n, collected: 0, species: chosen, queue: shuffle(q),
     bowls: Array.from({ length: BOWLS }, (_, i) => ({ sp: null, items: [], completing: false, locked: i >= 2 })),
     tray: [], pending: 0, over: false, paused: false, timed: p.timed, tier: p.tier,
     timeLeft: p.timed ? timeLimit(L, n) : 0, extraTime: false, usedBoosters: 0 };
@@ -647,7 +650,7 @@ function boostBrush() {
   commit(() => {
     const take = G.tray.splice(0, Math.min(3, G.tray.length));
     take.forEach((u, i) => G.cr[u].slot = i);
-    const r = R0 * CAP_R[take.length];
+    const r = R0 * (G.rk || 1) * CAP_R[take.length];
     // neue Blase landet unten im Spielfeld (sofort antippbar), die anderen werden nach oben geschoben
     const b = { id: G.nextB++, cap: take.length, items: take, r, x: r + Math.random() * (100 - 2 * r), y: G.H - r };
     G.bubbles.push(b);
@@ -698,6 +701,10 @@ function startLevel(L) {
   checkForUpdate();
   hideModal(); clearFx();
   showScreen('game');
+  // Ablage-Plätze schon vor dem Messen anlegen, damit die Spielfeldgröße stimmt (sonst ist das Feld beim ersten Level zu hoch)
+  if (!$('#tray').children.length) $('#tray').innerHTML = '<div class="slot"></div>'.repeat(TRAY);
+  if (!$('#cards').children.length) $('#cards').innerHTML = '<div class="card empty"></div>'.repeat(BOWLS);
+  if (!$('#bowls').children.length) $('#bowls').innerHTML = '<div class="bowl"></div>'.repeat(BOWLS);
   requestAnimationFrame(() => {
     G = genLevel(L);
     relayout(800);                     // Starthaufen einmal komplett „setzen“ lassen …
