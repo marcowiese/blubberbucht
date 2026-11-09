@@ -36,3 +36,7 @@ tools/release.sh 1.6.1   # setzt Versionsnummer überall
 git commit -am "v1.6.1: …" && git push
 ```
 Das Spiel prüft beim Start, beim Zurückkehren in die App und vor jedem Level `version.json` und lädt eine neue Version automatisch (nie mitten im Level).
+
+## Verwendete Bibliotheken
+- [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator) (MIT) – QR-Code für die Spielstand-Übertragung
+- [jsQR](https://github.com/cozmo/jsQR) (Apache-2.0) – QR-Scanner im Spiel

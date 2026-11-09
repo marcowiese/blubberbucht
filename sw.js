@@ -1,7 +1,7 @@
 // Offline-Unterstützung: immer zuerst die neueste Version aus dem Netz laden,
 // nur ohne Verbindung die gespeicherte Version verwenden.
-const CACHE = 'blubberbucht-1.22.2';
-const FILES = ['./', 'index.html', 'style.css', 'js/species.js', 'js/species-extra.js', 'js/postcards.js', 'js/audio.js', 'js/game.js', 'icon-192.png', 'manifest.webmanifest'];
+const CACHE = 'blubberbucht-1.23.0';
+const FILES = ['./', 'index.html', 'style.css', 'js/species.js', 'js/species-extra.js', 'js/postcards.js', 'js/audio.js', 'js/game.js', 'js/vendor/qrcode.min.js', 'js/vendor/jsQR.min.js', 'icon-192.png', 'manifest.webmanifest'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES))); self.skipWaiting(); });
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))));

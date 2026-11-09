@@ -1,7 +1,7 @@
 // Blubberbucht – Spiellogik
 'use strict';
 
-const APP_VERSION = '1.22.2'; // nicht von Hand ändern: tools/release.sh <version>
+const APP_VERSION = '1.23.0'; // nicht von Hand ändern: tools/release.sh <version>
 const TRAY = 6, BOWLS = 4, BOWL_PRICE = 650, BOOSTER_PRICE = 200;
 const SAVE_KEY = 'blubberbucht-v1';
 const $ = s => document.querySelector(s);
@@ -842,6 +842,7 @@ function showModal(html, acts = {}) {
   m.hidden = false;
 }
 function hideModal() {
+  stopScanner();
   $('#modal').hidden = true;
   if (G) G.paused = false;
 }
@@ -903,37 +904,116 @@ async function importCode(code) {
   if (typeof data.level !== 'number' || typeof data.coins !== 'number') throw new Error('inhalt');
   return data;
 }
+// Bibliotheken für QR-Codes nur bei Bedarf nachladen (liegen im Projekt unter js/vendor)
+const scriptCache = {};
+function loadScript(src) {
+  return scriptCache[src] ||= new Promise((res, rej) => {
+    const el = document.createElement('script');
+    el.src = src; el.onload = res; el.onerror = () => { delete scriptCache[src]; rej(new Error('load')); };
+    document.head.appendChild(el);
+  });
+}
+const IMPORT_PREFIX = '#import=';
+const importUrl = code => location.origin + location.pathname + IMPORT_PREFIX + code;
+function codeFromText(text) {
+  text = (text || '').trim();
+  const k = text.indexOf(IMPORT_PREFIX);
+  return k >= 0 ? decodeURIComponent(text.slice(k + IMPORT_PREFIX.length)) : text;
+}
+function confirmImport(data, back) {
+  showModal(`<div class="ribbon red">Spielstand ersetzen?</div>
+    <p>Gefundener Spielstand: <b>Level ${data.level}</b>, ${data.coins} Münzen.</p>
+    <p class="small">Der Fortschritt auf diesem Gerät wird dabei überschrieben.</p>
+    <button class="btn orange" data-act="yes">Ja, übernehmen</button><button class="btn green" data-act="no">Abbrechen</button>`, {
+    yes: () => {
+      save = { ...DEFAULTS, ...data, boosters: { ...DEFAULTS.boosters, ...(data.boosters || {}) }, stars: { ...(data.stars || {}) }, daily: save.daily };
+      persist(); hideModal(); Sfx.enabled = save.sound; Sfx.music = save.music; openMenu(); toast('Spielstand übernommen!'); Sfx.match();
+    },
+    no: back || hideModal,
+  });
+}
+async function tryImport(text, back) {
+  let data;
+  try { data = await importCode(codeFromText(text)); }
+  catch { toast('Der Code ist ungültig.'); Sfx.error(); return false; }
+  confirmImport(data, back);
+  return true;
+}
 function openTransfer(back) {
+  const again = () => openTransfer(back);
   showModal(`<div class="ribbon">Spielstand übertragen</div>
-    <p class="small">So nimmst du deinen Fortschritt auf ein anderes Gerät mit: Code hier kopieren und auf dem anderen Gerät unter „Code eingeben“ einfügen.</p>
-    <button class="btn green" data-act="copy">📋 Code kopieren</button>
-    <textarea id="xfer-code" class="xfer" placeholder="Code vom anderen Gerät hier einfügen …" rows="3"></textarea>
-    <button class="btn orange" data-act="load">Code eingeben</button>
+    <p class="small">So nimmst du deinen Fortschritt auf ein anderes Gerät mit:</p>
+    <button class="btn green" data-act="show">📱 QR-Code zeigen<small>auf dem Gerät mit dem Spielstand</small></button>
+    <button class="btn orange" data-act="scan">📷 QR-Code scannen<small>auf dem neuen Gerät</small></button>
+    <details class="xfer-more"><summary>Ohne Kamera: Code kopieren / einfügen</summary>
+      <button class="btn blue" data-act="copy">📋 Code kopieren</button>
+      <textarea id="xfer-code" class="xfer" placeholder="Code vom anderen Gerät hier einfügen …" rows="3"></textarea>
+      <button class="btn blue" data-act="load">Code übernehmen</button>
+    </details>
     <button class="btn ghost" data-act="back">Zurück</button>`, {
     back,
+    show: async () => {
+      try { await loadScript('js/vendor/qrcode.min.js'); } catch { toast('QR-Code konnte nicht geladen werden.'); return; }
+      const qr = qrcode(0, 'M');
+      qr.addData(importUrl(await exportCode()));
+      qr.make();
+      showModal(`<div class="ribbon">Dein Spielstand</div>
+        <div class="qr-box">${qr.createSvgTag({ cellSize: 6, margin: 3, scalable: true })}</div>
+        <p class="small">Auf dem neuen Gerät: Blubberbucht öffnen → ⚙ → <b>Spielstand übertragen</b> → <b>QR-Code scannen</b> und diesen Code ins Bild halten.</p>
+        <button class="btn green" data-act="done">Fertig</button>`, { done: again });
+    },
+    scan: () => openScanner(again),
     copy: async () => {
       const code = await exportCode();
       const ta = $('#xfer-code'); ta.value = code;
       try { await navigator.clipboard.writeText(code); toast('Code kopiert – jetzt auf dem anderen Gerät einfügen.'); }
       catch { ta.select(); toast('Code markiert – bitte kopieren.'); }
-      if (navigator.share && /iPhone|iPad|Android/i.test(navigator.userAgent)) navigator.share({ title: 'Blubberbucht-Spielstand', text: code }).catch(() => {});
     },
-    load: async () => {
-      let data;
-      try { data = await importCode($('#xfer-code').value); }
-      catch { toast('Der Code ist ungültig.'); Sfx.error(); return; }
-      showModal(`<div class="ribbon red">Spielstand ersetzen?</div>
-        <p>Gefundener Spielstand: <b>Level ${data.level}</b>, ${data.coins} Münzen.</p>
-        <p class="small">Der Fortschritt auf diesem Gerät wird dabei überschrieben.</p>
-        <button class="btn orange" data-act="yes">Ja, übernehmen</button><button class="btn green" data-act="no">Abbrechen</button>`, {
-        yes: () => {
-          save = { ...DEFAULTS, ...data, boosters: { ...DEFAULTS.boosters, ...(data.boosters || {}) }, stars: { ...(data.stars || {}) }, daily: save.daily };
-          persist(); hideModal(); Sfx.enabled = save.sound; Sfx.music = save.music; openMenu(); toast('Spielstand übernommen!');
-        },
-        no: () => openTransfer(back),
-      });
-    },
+    load: () => tryImport($('#xfer-code').value, again),
   });
+}
+// QR-Scanner: Kamera im Spiel öffnen und Bilder mit jsQR auswerten
+let scanStream = null, scanRaf = 0;
+function stopScanner() {
+  cancelAnimationFrame(scanRaf); scanRaf = 0;
+  if (scanStream) { scanStream.getTracks().forEach(t => t.stop()); scanStream = null; }
+}
+async function openScanner(back) {
+  const close = () => { stopScanner(); back(); };
+  showModal(`<div class="ribbon">QR-Code scannen</div>
+    <div class="scan-box"><video id="scan-video" playsinline muted></video><div class="scan-frame"></div></div>
+    <p class="small" id="scan-hint">Kamera wird gestartet …</p>
+    <button class="btn ghost" data-act="cancel">Abbrechen</button>`, { cancel: close });
+  if (!navigator.mediaDevices?.getUserMedia) { $('#scan-hint').textContent = 'Dieses Gerät erlaubt hier keinen Kamerazugriff. Bitte den Code zum Kopieren nutzen.'; return; }
+  try {
+    await loadScript('js/vendor/jsQR.min.js');
+    scanStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+  } catch {
+    $('#scan-hint').textContent = 'Kein Kamerazugriff. Bitte die Kamera für diese Seite erlauben oder den Code zum Kopieren nutzen.';
+    return;
+  }
+  const video = $('#scan-video');
+  if (!video) { stopScanner(); return; }
+  video.srcObject = scanStream;
+  await video.play().catch(() => {});
+  $('#scan-hint').textContent = 'Halte den QR-Code vom anderen Gerät in den Rahmen.';
+  const canvas = document.createElement('canvas'), ctx = canvas.getContext('2d', { willReadFrequently: true });
+  const tick = async () => {
+    if (!scanStream) return;
+    if (video.readyState >= 2 && video.videoWidth) {
+      const w = 480, h = Math.round(480 * video.videoHeight / video.videoWidth);
+      canvas.width = w; canvas.height = h;
+      ctx.drawImage(video, 0, 0, w, h);
+      const hit = jsQR(ctx.getImageData(0, 0, w, h).data, w, h, { inversionAttempts: 'dontInvert' });
+      if (hit && hit.data) {
+        stopScanner(); vib(30); Sfx.click();
+        if (!(await tryImport(hit.data, back))) openScanner(back);
+        return;
+      }
+    }
+    scanRaf = requestAnimationFrame(tick);
+  };
+  scanRaf = requestAnimationFrame(tick);
 }
 
 // ---------- Entwicklermodus (versteckt: 10× auf die Versionsnummer im Hauptmenü tippen) ----------
@@ -1295,6 +1375,11 @@ function init() {
   window.addEventListener('orientationchange', () => { clearTimeout(rt); rt = setTimeout(onResize, 350); });
   document.addEventListener('pointerdown', () => Sfx.unlock(), { once: true });
   openMenu();
+  if (location.hash.startsWith(IMPORT_PREFIX)) {
+    const link = location.hash;
+    history.replaceState(null, '', location.pathname);
+    setTimeout(() => tryImport(link), 600);
+  }
   updateIfIdle();
   document.addEventListener('visibilitychange', () => { if (!document.hidden) { updateIfIdle(); checkDaily(); } });
   setInterval(updateIfIdle, 5 * 60 * 1000);
