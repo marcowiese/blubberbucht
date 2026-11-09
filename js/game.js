@@ -1,7 +1,7 @@
 // Blubberbucht – Spiellogik
 'use strict';
 
-const APP_VERSION = '1.19.0'; // nicht von Hand ändern: tools/release.sh <version>
+const APP_VERSION = '1.19.1'; // nicht von Hand ändern: tools/release.sh <version>
 const TRAY = 6, BOWLS = 4, BOWL_PRICE = 650, BOOSTER_PRICE = 200;
 const SAVE_KEY = 'blubberbucht-v1';
 const $ = s => document.querySelector(s);
@@ -172,7 +172,10 @@ function renderBoard() {
   const existing = new Map([...stage.children].map(e => [e.dataset.b, e]));
   const keep = new Set();
   for (const b of G.bubbles) {
-    if (!b.items.length || isBlocked(b)) continue;   // wartende Blasen werden gar nicht gezeichnet
+    if (!b.items.length) continue;
+    // Wartende Blasen: ganz oberhalb -> gar nicht zeichnen; unten schon im Bild -> nur angedeutet (nicht antippbar)
+    const peek = isBlocked(b);
+    if (peek && b.y + b.r < 1.5) continue;
     const id = String(b.id); keep.add(id);
     const d = b.r * 2 * s, left = (b.x - b.r) * s, top = (b.y - b.r) * s;
     let el = existing.get(id);
@@ -185,7 +188,7 @@ function renderBoard() {
       void el.offsetWidth;
     }
     Object.assign(el.style, { left: left + 'px', top: top + 'px', width: d + 'px', height: d + 'px' });
-    el.classList.toggle('far', isBlocked(b));
+    el.classList.toggle('peek', peek);
     // Jedes Tier behält seinen Platz in der Blase – nichts rückt nach, wenn eines herausgenommen wird
     const pos = POS[b.cap] || POS[3];
     const crs = new Map([...el.querySelectorAll('.cr')].map(c => [c.dataset.uid, c]));
@@ -401,7 +404,7 @@ function onBoardTap(e) {
   const b = G.bubbles.find(x => x.id === +bEl.dataset.b);
   if (!b || !b.items.length) return;
   if (b.moveUntil && performance.now() < b.moveUntil) return;
-  if (isBlocked(b)) { shake(bEl); Sfx.error(); return; }
+  if (isBlocked(b)) return;   // nur angedeutete Blase – noch nicht im Spiel
   let uid = e.target.closest('.cr[data-uid]')?.dataset.uid;
   if (!uid) {
     let best = 1e9;

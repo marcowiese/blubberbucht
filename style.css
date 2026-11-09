@@ -544,3 +544,6 @@ body.no-anim .bubble, body.no-anim .bubble .cr { transition: none !important; }
 /* Spielfeld nicht mehr unter die Ablage schieben; Inhalt sicher am Rand abschneiden (auch in Safari) */
 .board { margin-top: calc(1.5 * var(--u)); }
 #stage { overflow: hidden; contain: paint; isolation: isolate; }
+/* Angedeutete nächste Blase: sichtbar, aber deutlich noch nicht aktiv */
+.bubble.peek { filter: saturate(.5) brightness(.82); opacity: .75; pointer-events: none; }
+.bubble.peek .cr { animation: none !important; }
