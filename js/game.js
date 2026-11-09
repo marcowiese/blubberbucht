@@ -1,7 +1,7 @@
 // Blubberbucht – Spiellogik
 'use strict';
 
-const APP_VERSION = '1.23.0'; // nicht von Hand ändern: tools/release.sh <version>
+const APP_VERSION = '1.23.1'; // nicht von Hand ändern: tools/release.sh <version>
 const TRAY = 6, BOWLS = 4, BOWL_PRICE = 650, BOOSTER_PRICE = 200;
 const SAVE_KEY = 'blubberbucht-v1';
 const $ = s => document.querySelector(s);
@@ -159,15 +159,16 @@ function physFrame(now) {
   let awake = 0;
   for (let i = 0; i < 3; i++) awake = physStep(dt / 3);
   applyPositions();
-  // Sicherheitsnetz: spätestens 3,5 s nach der letzten Änderung ist alles in Ruhe
-  if (awake > 0 && now - phys.woke < 3500) phys.raf = requestAnimationFrame(physFrame);
+  // Sicherheitsnetz: spätestens 5 s nach der letzten Änderung ist alles in Ruhe
+  if (awake > 0 && now - phys.woke < 5000) phys.raf = requestAnimationFrame(physFrame);
   else { G.bubbles.forEach(b => { b.sleep = true; b.vx = 0; b.vy = 0; }); applyPositions(); }
 }
 function physStep(dt) {
   const B = G.bubbles, H = G.H, n = B.length, drag = Math.exp(-2.4 * dt), e = .18;
+  const now = performance.now();
   for (const b of B) {
     b.support = false;
-    if (b.sleep) continue;
+    if (b.sleep || b.hold > now) continue;          // noch nicht losgelassen
     b.vx = (b.vx || 0) * drag;
     b.vy = ((b.vy || 0) + 240 * dt) * drag;                 // Schwerkraft (im Wasser gebremst)
     b.x += b.vx * dt; b.y += b.vy * dt;
@@ -177,7 +178,7 @@ function physStep(dt) {
       const a = B[i];
       for (let j = i + 1; j < n; j++) {
         const b = B[j];
-        if (a.sleep && b.sleep) continue;
+        if ((a.sleep && b.sleep) || a.hold > now || b.hold > now) continue;
         const dx = b.x - a.x, dy = b.y - a.y, min = (a.r + b.r) * SQUEEZE;
         if (Math.abs(dx) >= min || Math.abs(dy) >= min) continue;
         const d2 = dx * dx + dy * dy;
@@ -216,6 +217,7 @@ function physStep(dt) {
   let awake = 0;
   for (const b of B) {
     if (b.sleep) continue;
+    if (b.hold > now) { awake++; continue; }
     if (b.support) { b.vx *= .95; b.vy *= .93; }           // leichte Reibung, wenn die Blase aufliegt -> kein Zittern
     const v = Math.hypot(b.vx, b.vy);
     b.still = b.support && v < 8 ? (b.still || 0) + 1 : 0;
@@ -710,7 +712,16 @@ function startLevel(L) {
   requestAnimationFrame(() => {
     G = genLevel(L);
     relayout(800);                     // Starthaufen einmal komplett „setzen“ lassen …
-    if (!window.SIM) G.bubbles.forEach(b => { b.y -= G.H + 20 + Math.random() * 10; b.vx = (Math.random() - .5) * 20; b.vy = 0; });  // … und sichtbar hineinfallen
+    if (!window.SIM) {
+      // … und gestaffelt hineinfallen: untere Blasen zuerst, jede mit eigener Verzögerung, Höhe, Tempo und Seitenschwung
+      const t0 = performance.now();
+      [...G.bubbles].sort((a, b) => b.y - a.y).forEach((b, i) => {
+        b.y -= G.H + 20 + Math.random() * 45;
+        b.vx = (Math.random() - .5) * 60;
+        b.vy = Math.random() * 70;
+        b.hold = t0 + Math.min(i * 70, 1600) + Math.random() * 160;
+      });
+    }
     settle();
     $('#stage').innerHTML = '';
     render();
