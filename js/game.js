@@ -1,7 +1,7 @@
 // Blubberbucht – Spiellogik
 'use strict';
 
-const APP_VERSION = '1.19.1'; // nicht von Hand ändern: tools/release.sh <version>
+const APP_VERSION = '1.19.2'; // nicht von Hand ändern: tools/release.sh <version>
 const TRAY = 6, BOWLS = 4, BOWL_PRICE = 650, BOOSTER_PRICE = 200;
 const SAVE_KEY = 'blubberbucht-v1';
 const $ = s => document.querySelector(s);
@@ -564,9 +564,13 @@ function startTimer() {
   if (!G.timed) return;
   timerId = setInterval(() => {
     if (!G || G.over || G.paused || document.hidden) return;
-    G.timeLeft--;
+    if (G.timeLeft > 0) G.timeLeft--;
     renderHUD();
-    if (G.timeLeft <= 0) { G.over = true; loseLevel('time'); }
+    if (G.timeLeft > 0) return;
+    // Läuft gerade noch ein volles Glas aus (Tiere schwimmen hinein), erst dessen Ergebnis abwarten
+    if (G.pending > 0) return;
+    afterChange();                       // vielleicht ist das Level genau jetzt geschafft
+    if (!G.over) { G.over = true; loseLevel('time'); }
   }, 1000);
 }
 
@@ -657,13 +661,13 @@ function loseLevel(reason) {
   const acts = {
     retry: () => startLevel(L),
     menu: () => { hideModal(); openMenu(); },
-    brush: () => { hideModal(); G.over = false; G.lostReason = null; useBooster('brush'); startTimer(); },
+    brush: () => { hideModal(); G.over = false; G.lostReason = null; useBooster('brush'); startTimer(); afterChange(); },
     buybrush: () => {
       if (!spend(BOOSTER_PRICE)) return;
       save.boosters.brush = (save.boosters.brush || 0) + 1; persist();
-      hideModal(); G.over = false; G.lostReason = null; useBooster('brush'); startTimer();
+      hideModal(); G.over = false; G.lostReason = null; useBooster('brush'); startTimer(); afterChange();
     },
-    time: () => { hideModal(); G.over = false; G.lostReason = null; G.extraTime = true; G.timeLeft += 20; startTimer(); renderHUD(); },
+    time: () => { hideModal(); G.over = false; G.lostReason = null; G.extraTime = true; G.timeLeft += 20; startTimer(); renderHUD(); afterChange(); },
   };
   let opts = '';
   if (reason === 'tray') {
