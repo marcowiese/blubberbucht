@@ -558,3 +558,18 @@ body.no-anim .bubble, body.no-anim .bubble .cr { transition: none !important; }
 .devrow .btn { width: auto; margin: 0; padding: calc(2.4 * var(--u)) calc(4 * var(--u)); font-size: calc(4.4 * var(--u)); }
 .devrow.two .btn { flex: 1; }
 .devcheck { display: flex; gap: calc(2 * var(--u)); align-items: center; text-align: left; font-size: calc(3.6 * var(--u)); margin-top: calc(1.6 * var(--u)); }
+
+/* ---------- Echtzeit-Physik: Position kommt per transform, keine CSS-Übergänge mehr ---------- */
+.bubble { left: 0; top: 0; transition: none !important; will-change: transform; }
+
+/* ---------- Ängstlicher Zitrino ---------- */
+.worry { width: calc(34 * var(--u)); height: calc(34 * var(--u)); margin: calc(1 * var(--u)) auto 0; }
+.worry .wf { position: relative; width: 100%; height: 100%; animation: tremble .11s linear infinite alternate; }
+.worry.t2 .wf { animation-duration: .07s; }
+.worry .wf > svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.worry .drop { animation: sweat 1.4s ease-in infinite; opacity: 0; }
+.worry .drop.d2 { animation-delay: .6s; }
+@keyframes tremble { from { transform: translateX(-1.5%) rotate(-1.5deg); } to { transform: translateX(1.5%) rotate(1.5deg); } }
+.worry.t2 .wf { animation-name: tremble2; }
+@keyframes tremble2 { from { transform: translateX(-2.5%) rotate(-3deg); } to { transform: translateX(2.5%) rotate(3deg); } }
+@keyframes sweat { 0% { opacity: 0; transform: translateY(0); } 15% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; transform: translateY(14px); } }

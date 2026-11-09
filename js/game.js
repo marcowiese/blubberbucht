@@ -1,7 +1,7 @@
 // Blubberbucht – Spiellogik
 'use strict';
 
-const APP_VERSION = '1.21.1'; // nicht von Hand ändern: tools/release.sh <version>
+const APP_VERSION = '1.22.0'; // nicht von Hand ändern: tools/release.sh <version>
 const TRAY = 6, BOWLS = 4, BOWL_PRICE = 650, BOOSTER_PRICE = 200;
 const SAVE_KEY = 'blubberbucht-v1';
 const $ = s => document.querySelector(s);
@@ -46,17 +46,29 @@ function levelParams(L) {
 const COLS_X = [17.5, 50, 82.5], R0 = 17.4, PLAY_H = 103;
 
 let G = null;
+const CAP_R = { 1: .72, 2: .84, 3: 1, 4: 1.14, 5: 1.25 };   // Blasengröße je nach Anzahl Tiere
+function makeCaps(total) {
+  const bag = [2, 2, 3, 3, 3, 3, 4, 4, 5], caps = [];
+  let sum = 0;
+  while (sum < total) {
+    const rest = total - sum;
+    let c = Math.min(bag[rand(bag.length)], rest);
+    if (rest - c === 1) c = c > 2 ? c - 1 : c + 1;          // nie eine Blase mit nur 1 Tier übrig lassen
+    caps.push(c); sum += c;
+  }
+  return shuffle(caps);
+}
 
 function genLevel(L) {
   const p = levelParams(L);
   const board = $('#board');
   // Feste Spielfeldhöhe: Auf jedem Gerät und in jeder Ausrichtung sind gleich viele Blasen sichtbar.
   const H = PLAY_H, T = p.T;
-  // jede Blase startet mit genau 3 Tieren
-  const caps = Array(T).fill(3);
+  // Blasen mit 2 (klein), 3 (mittel) oder 4–5 Tieren (groß) – zusammen genau T*3 Tiere
+  const caps = makeCaps(T * 3);
   // verschiedene Blasengrößen; Startpositionen als lockerer Haufen, die Physik ordnet sie danach
   const bubbles = caps.map((cap, i) => {
-    const r = R0 * (.84 + Math.random() * .3);
+    const r = R0 * CAP_R[cap] * (.96 + Math.random() * .08);
     return { id: i, cap, items: [], r, x: r + Math.random() * (100 - 2 * r), y: H - r - i * 9 - Math.random() * 6 };
   });
   // Spalten: Index 0 = ganz unten, weiter oben warten Blasen außerhalb des Bildes
@@ -119,15 +131,98 @@ function relayout(iter = 140) {
 }
 // leere Blasen entfernen -> die darüber rutschen nach
 function dropEmpty() {
+  const before = G.bubbles.length;
   G.bubbles = G.bubbles.filter(b => b.items.length);
-  const alive = new Set(G.bubbles.map(b => b.id));
-  G.cols = G.cols.map(col => col.filter(id => alive.has(id)));
-  const oldY = new Map(G.bubbles.map(b => [b.id, b.y]));
-  relayout();
-  // Blasen, die gerade nachrutschen, kurz nicht antippbar machen – sonst trifft man leicht das falsche Tier
-  const until = performance.now() + 480;
-  G.bubbles.forEach(b => { if (Math.abs((oldY.get(b.id) ?? b.y) - b.y) > .5) b.moveUntil = until; });
+  if (window.SIM) { if (G.bubbles.length !== before) relayout(); return; }
+  physWake();
 }
+
+// ---------- Echtzeit-Physik: Schwerkraft, Wasserwiderstand, Masse (große Blasen schubsen kleine), leichtes Abprallen ----------
+const phys = { raf: 0, last: 0 };
+// Blasen „schlafen“, sobald sie aufliegen und ruhig sind – so kommt der Haufen wirklich zur Ruhe (spart Akku).
+// Nach jeder Änderung (Blase geplatzt, neue Blase) werden alle wieder geweckt.
+function physWake() {
+  if (window.SIM || !G) return;
+  G.bubbles.forEach(b => { b.sleep = false; b.still = 0; });
+  phys.woke = performance.now();
+  if (phys.raf) return;
+  phys.last = performance.now(); phys.woke = phys.last;
+  phys.raf = requestAnimationFrame(physFrame);
+}
+function physFrame(now) {
+  phys.raf = 0;
+  if (!G || $('#screen-game').hidden) return;
+  const dt = Math.min(.04, Math.max(.001, (now - phys.last) / 1000));
+  phys.last = now;
+  let awake = 0;
+  for (let i = 0; i < 3; i++) awake = physStep(dt / 3);
+  applyPositions();
+  // Sicherheitsnetz: spätestens 3,5 s nach der letzten Änderung ist alles in Ruhe
+  if (awake > 0 && now - phys.woke < 3500) phys.raf = requestAnimationFrame(physFrame);
+  else { G.bubbles.forEach(b => { b.sleep = true; b.vx = 0; b.vy = 0; }); applyPositions(); }
+}
+function physStep(dt) {
+  const B = G.bubbles, H = G.H, n = B.length, drag = Math.exp(-2.4 * dt), e = .18;
+  for (const b of B) {
+    b.support = false;
+    if (b.sleep) continue;
+    b.vx = (b.vx || 0) * drag;
+    b.vy = ((b.vy || 0) + 240 * dt) * drag;                 // Schwerkraft (im Wasser gebremst)
+    b.x += b.vx * dt; b.y += b.vy * dt;
+  }
+  for (let pass = 0; pass < 3; pass++) {
+    for (let i = 0; i < n; i++) {
+      const a = B[i];
+      for (let j = i + 1; j < n; j++) {
+        const b = B[j];
+        if (a.sleep && b.sleep) continue;
+        const dx = b.x - a.x, dy = b.y - a.y, min = (a.r + b.r) * SQUEEZE;
+        if (Math.abs(dx) >= min || Math.abs(dy) >= min) continue;
+        const d2 = dx * dx + dy * dy;
+        if (d2 >= min * min) continue;
+        const d = Math.sqrt(d2) || .01, nx = d > .01 ? dx / d : .1, ny = d > .01 ? dy / d : 1;
+        // Auflage merken (wer liegt auf wem)
+        // Auflage zählt nur auf etwas, das schon ruht (Boden oder schlafende Blase) – sonst „schläft“ ein fallender Haufen in der Luft ein
+        if (ny > .45 && a.sleep) b.support = true; else if (ny < -.45 && b.sleep) a.support = true;
+        // eine schnell heranfliegende Blase weckt eine schlafende auf
+        const rvel = Math.hypot((b.vx || 0) - (a.vx || 0), (b.vy || 0) - (a.vy || 0));
+        if (a.sleep && rvel > 40) a.sleep = false;
+        if (b.sleep && rvel > 40) b.sleep = false;
+        // Masse ~ Fläche; schlafende Blasen wirken wie fest
+        const wa = a.sleep ? 0 : 1 / (a.r * a.r), wb = b.sleep ? 0 : 1 / (b.r * b.r), w = wa + wb;
+        if (!w) continue;
+        const pen = min - d;
+        if (pen > .04) {
+          const corr = Math.min(pen * .6, 1.4);
+          a.x -= nx * corr * wa / w; a.y -= ny * corr * wa / w;
+          b.x += nx * corr * wb / w; b.y += ny * corr * wb / w;
+        }
+        const rv = ((b.vx || 0) - (a.vx || 0)) * nx + ((b.vy || 0) - (a.vy || 0)) * ny;
+        if (rv < 0) {
+          const imp = -(1 + (rv < -25 ? e : 0)) * rv / w;   // nur bei kräftigem Aufprall leicht federn
+          a.vx -= imp * nx * wa; a.vy -= imp * ny * wa; b.vx += imp * nx * wb; b.vy += imp * ny * wb;
+        }
+      }
+    }
+    for (const b of B) {
+      if (b.sleep) continue;
+      if (b.x < b.r) { b.x = b.r; b.vx = Math.abs(b.vx) * .25; }
+      if (b.x > 100 - b.r) { b.x = 100 - b.r; b.vx = -Math.abs(b.vx) * .25; }
+      if (b.y >= H - b.r) { b.y = H - b.r; if (b.vy > 0) b.vy = -b.vy * e; b.vx *= .94; b.support = true; }
+    }
+  }
+  let awake = 0;
+  for (const b of B) {
+    if (b.sleep) continue;
+    if (b.support) { b.vx *= .95; b.vy *= .93; }           // leichte Reibung, wenn die Blase aufliegt -> kein Zittern
+    const v = Math.hypot(b.vx, b.vy);
+    b.still = b.support && v < 8 ? (b.still || 0) + 1 : 0;
+    if (b.still > 15) { b.sleep = true; b.vx = 0; b.vy = 0; }
+    else awake++;
+  }
+  return awake;
+}
+const isMoving = b => !b.sleep && Math.hypot(b.vx || 0, b.vy || 0) > 25;
 function bubbleOf(uid) { return G.bubbles.find(b => b.items.includes(uid)); }
 function countWhere(sp, onlyFree = false) {
   let n = 0;
@@ -182,33 +277,29 @@ const POS = {
   1: [[.5, .5, .66]],
   2: [[.35, .39, .54], [.65, .63, .54]],
   3: [[.31, .35, .48], [.69, .37, .48], [.5, .7, .48]],
+  4: [[.31, .32, .42], [.69, .32, .42], [.31, .68, .42], [.69, .68, .42]],
+  5: [[.29, .3, .38], [.71, .3, .38], [.5, .52, .38], [.29, .74, .38], [.71, .74, .38]],
 };
 
 function renderBoard() {
   const board = $('#board'), stage = $('#stage');
   const W = board.clientWidth, H = board.clientHeight;
   const s = Math.min(W / 100, H / G.H);
+  G.s = s;
   Object.assign(stage.style, { width: 100 * s + 'px', height: G.H * s + 'px', left: (W - 100 * s) / 2 + 'px', top: (H - G.H * s) + 'px' });
   const existing = new Map([...stage.children].map(e => [e.dataset.b, e]));
   const keep = new Set();
   for (const b of G.bubbles) {
     if (!b.items.length) continue;
-    // Wartende Blasen: ganz oberhalb -> gar nicht zeichnen; unten schon im Bild -> nur angedeutet (nicht antippbar)
-    const peek = isBlocked(b);
-    if (peek && b.y + b.r < 1.5) continue;
     const id = String(b.id); keep.add(id);
-    const d = b.r * 2 * s, left = (b.x - b.r) * s, top = (b.y - b.r) * s;
+    const d = b.r * 2 * s;
     let el = existing.get(id);
     if (!el) {
-      // neue Blase startet oberhalb des Spielfelds und rutscht hinein
       el = document.createElement('div');
       el.className = 'bubble'; el.dataset.b = id;
-      Object.assign(el.style, { left: left + 'px', top: Math.min(top, -d - 8) + 'px', width: d + 'px', height: d + 'px' });
       stage.appendChild(el);
-      void el.offsetWidth;
     }
-    Object.assign(el.style, { left: left + 'px', top: top + 'px', width: d + 'px', height: d + 'px' });
-    el.classList.toggle('peek', peek);
+    el.style.width = el.style.height = d + 'px';
     // Jedes Tier behält seinen Platz in der Blase – nichts rückt nach, wenn eines herausgenommen wird
     const pos = POS[b.cap] || POS[3];
     const crs = new Map([...el.querySelectorAll('.cr')].map(c => [c.dataset.uid, c]));
@@ -222,6 +313,21 @@ function renderBoard() {
     crs.forEach(c => c.remove());
   }
   existing.forEach((e, id) => { if (!keep.has(id)) e.remove(); });
+  applyPositions();
+}
+// Positionen aus der Physik übernehmen. Ganz oberhalb wartende Blasen sind unsichtbar,
+// angeschnittene sind nur angedeutet (nicht antippbar), nur vollständig sichtbare sind aktiv.
+function applyPositions() {
+  const s = G.s || 1, stage = $('#stage');
+  for (const b of G.bubbles) {
+    const el = stage.querySelector(`[data-b="${b.id}"]`);
+    if (!el) continue;
+    const hidden = b.y + b.r < 1.5;
+    el.style.display = hidden ? 'none' : '';
+    if (hidden) continue;
+    el.style.transform = `translate3d(${((b.x - b.r) * s).toFixed(1)}px, ${((b.y - b.r) * s).toFixed(1)}px, 0)`;
+    el.classList.toggle('peek', isBlocked(b));
+  }
 }
 function renderBowls() {
   $('#bowls').innerHTML = G.bowls.map((w, i) => w.locked
@@ -321,8 +427,6 @@ function finishFlights() {
 function onResize() {
   if (!G || $('#screen-game').hidden) return;
   finishFlights();
-  const board = $('#board');
-  relayout();
   document.body.classList.add('no-anim');
   render();
   void document.body.offsetWidth;
@@ -423,7 +527,7 @@ function onBoardTap(e) {
   if (!bEl) return;
   const b = G.bubbles.find(x => x.id === +bEl.dataset.b);
   if (!b || !b.items.length) return;
-  if (b.moveUntil && performance.now() < b.moveUntil) return;
+  if (isMoving(b)) return;                    // Blase rutscht gerade noch – Tippen ignorieren
   if (isBlocked(b)) return;   // nur angedeutete Blase – noch nicht im Spiel
   let uid = e.target.closest('.cr[data-uid]')?.dataset.uid;
   if (!uid) {
@@ -543,7 +647,7 @@ function boostBrush() {
   commit(() => {
     const take = G.tray.splice(0, Math.min(3, G.tray.length));
     take.forEach((u, i) => G.cr[u].slot = i);
-    const r = R0 * [0, .74, .88, 1][take.length];
+    const r = R0 * CAP_R[take.length];
     // neue Blase landet unten im Spielfeld (sofort antippbar), die anderen werden nach oben geschoben
     const b = { id: G.nextB++, cap: take.length, items: take, r, x: r + Math.random() * (100 - 2 * r), y: G.H - r };
     G.bubbles.push(b);
@@ -596,12 +700,14 @@ function startLevel(L) {
   showScreen('game');
   requestAnimationFrame(() => {
     G = genLevel(L);
-    relayout(800);                     // Starthaufen einmal komplett „setzen“ lassen
+    relayout(800);                     // Starthaufen einmal komplett „setzen“ lassen …
+    if (!window.SIM) G.bubbles.forEach(b => { b.y -= G.H + 20 + Math.random() * 10; b.vx = (Math.random() - .5) * 20; b.vy = 0; });  // … und sichtbar hineinfallen
     settle();
     $('#stage').innerHTML = '';
     render();
+    physWake();
     startTimer();
-    if (L === 1 && !save.tutorialDone) setTimeout(tutStart, 700);
+    if (L === 1 && !save.tutorialDone) setTimeout(tutStart, 1800);
     const u = unlockedCount(L);
     if (u > save.seen) {
       const sp = SPECIES[u - 1];
@@ -615,8 +721,9 @@ function startLevel(L) {
     } else if (G.tier) {
       setTimeout(() => showModal(`
         <div class="ribbon ${G.tier === 2 ? 'red' : 'orange'}">${TIER_NAME[G.tier]}es Level</div>
+        ${worriedFish(G.tier)}
         <h2>${G.tier === 2 ? '🔥🔥' : '🔥'} Level ${L}</h2>
-        <p>Hier wird's knifflig – plane deine Züge gut! Ein 3. Aquarium kannst du für ${BOWL_PRICE} Münzen dazukaufen.</p>
+        <p>${G.tier === 2 ? 'Oh oh … Zitrino zittert schon!' : 'Oh je, das wird knifflig!'} Plane deine Züge gut – ein 3. Aquarium gibt's für ${BOWL_PRICE} Münzen.</p>
         <button class="btn green" data-act="close">Los geht's!</button>`, { close: hideModal }), 400);
     } else if (G.timed) {
       setTimeout(() => showModal(`
@@ -978,6 +1085,18 @@ function showPostcard(i, isNew = false, after = hideModal) {
     },
   });
   $('#modal .panel').classList.add('wide');
+}
+
+// ---------- Ängstlicher Zitrino für schwere Level ----------
+function worriedFish(tier) {
+  return `<div class="worry t${tier}"><div class="wf">${creatureSVG('zitrino')}
+    <svg class="wf-face" viewBox="0 0 100 100" aria-hidden="true">
+      <path d="M27 31 Q35 30 46 37" fill="none" stroke="#5a3a10" stroke-width="2.6" stroke-linecap="round"/>
+      <ellipse cx="32" cy="63" rx="8" ry="4.6" fill="#ffd23a"/>
+      <path d="M25 64 q2.5 -2.6 5 0 q2.5 2.6 5 0 q2.5 -2.6 5 0" fill="none" stroke="#5a1e2e" stroke-width="2" stroke-linecap="round"/>
+      <path class="drop d1" d="M64 18 q4 7 0 10 q-4 -3 0 -10z" fill="#8fdcff" stroke="#fff" stroke-width="1"/>
+      ${tier === 2 ? '<path class="drop d2" d="M76 30 q3.4 6 0 8.6 q-3.4 -2.6 0 -8.6z" fill="#8fdcff" stroke="#fff" stroke-width="1"/>' : ''}
+    </svg></div></div>`;
 }
 
 // ---------- Levelkarte: Level 1 an der Oberfläche, je weiter, desto tiefer ----------
