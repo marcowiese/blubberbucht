@@ -115,6 +115,32 @@ const Sfx = (() => {
     }
   }
 
+  // Gezupfter Mallet-/Kalimba-Ton: heller Anschlag, kurzer Ausklang, etwas Hall
+  function mallet(m, delay, vol = .12, dur = .55, rev = .3) {
+    if (!enabled) return;
+    const a = ac(); if (!a) return;
+    const t = a.currentTime + delay, f = hz(m);
+    const out = a.createGain(), send = a.createGain(); send.gain.value = rev;
+    out.connect(sfxBus); out.connect(send); send.connect(reverb);
+    for (const [mul, v, d, type] of [[1, 1, dur, 'sine'], [1, .35, dur * .7, 'triangle'], [2, .25, dur * .35, 'sine'], [4.02, .18, .07, 'sine']]) {
+      const o = a.createOscillator(), g = a.createGain();
+      o.type = type; o.frequency.value = f * mul;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol * v, t + .005);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+      o.connect(g).connect(out); o.start(t); o.stop(t + d + .05);
+    }
+  }
+  // weicher Bass darunter
+  function bass(m, delay, vol = .09, dur = .5) {
+    if (!enabled) return;
+    const a = ac(); if (!a) return;
+    const t = a.currentTime + delay, o = a.createOscillator(), g = a.createGain();
+    o.type = 'sine'; o.frequency.value = hz(m);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + .02); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g).connect(sfxBus); o.start(t); o.stop(t + dur + .05);
+  }
+
   return {
     set enabled(v) { enabled = v; }, get enabled() { return enabled; },
     set music(v) { musicOn = v; v ? (ctx && startMusic()) : stopMusic(); },
@@ -146,11 +172,15 @@ const Sfx = (() => {
     burst() { noise(.06, { f1: 4000, f2: 1500, q: .8, vol: .08 }); blub(900, .01, .08); },
     match() { [72, 76, 79, 84].forEach((m, i) => sweep(hz(m), hz(m) * 1.002, .5, { type: 'sine', vol: .1, delay: i * .08, attack: .01 })); [.0, .08].forEach(d => blub(1000 + Math.random() * 500, d + .3, .05)); },
     // Gewinn: aufsteigende, glockige Dur-Septnonen-Figur mit Hall, warme Fläche und ein paar Bläschen
+    // Gewinn: kurzer, freundlicher Jingle – hüpfende Mallet-Melodie mit Bass, Glitzer-Abschluss und Hall
     win() {
-      [72, 76, 79, 83, 86].forEach((m, i) => chime(m, i * .085, .085, 1.5));
-      swell([60, 64, 67, 71, 74], .28, .028, 2.4);
-      chime(84, .55, .07, 2.2, .5); chime(88, .62, .045, 2, .55);
-      [.05, .2, .38, .6, .85].forEach(d => blub(900 + Math.random() * 900, d, .035, .07));
+      const b = .13;                                  // Grundschlag (ca. 115 BPM in Achteln)
+      [[67, 0], [71, 1], [74, 2], [72, 4], [76, 5], [79, 6]].forEach(([m, k]) => mallet(m, k * b, .11));
+      bass(48, 0, .08, .45); bass(55, 4 * b, .07, .4); bass(48, 8 * b, .09, 1.1);
+      // Schlussakkord mit Glitzer
+      [[84, 0], [88, .03], [91, .06]].forEach(([m, d]) => mallet(m, 8 * b + d, .08, 1.3, .55));
+      [96, 100, 103].forEach((m, i) => mallet(m, 8 * b + .12 + i * .06, .025, .5, .7));
+      [.1, .45, 1.1].forEach(d => blub(1100 + Math.random() * 700, d, .03, .06));
     },
     // Verloren: sanft absteigend statt „Fehler-Tröte“
     lose() { [71, 67, 64, 62].forEach((m, i) => chime(m, i * .16, .07, 1.3, .3)); swell([50, 57, 62], .3, .02, 1.8); },
