@@ -582,3 +582,8 @@ body.no-anim .bubble, body.no-anim .bubble .cr { transition: none !important; }
   .boosters { padding: calc(1.6 * var(--u)) 0 calc(2 * var(--u)); }
   .booster { width: calc(15.5 * var(--u)); height: calc(15.5 * var(--u)); }
 }
+/* Querformat: Rahmen sitzt genau um das Spielfeld (nicht um die ganze Spalte) */
+@media (orientation: landscape) and (min-aspect-ratio: 5/4) {
+  #screen-game .board { aspect-ratio: auto; height: auto; align-self: stretch; background: none; border: 0; box-shadow: none; }
+  #screen-game #stage { background: rgba(255,255,255,.08); outline: 2px solid rgba(255,255,255,.28); border-radius: 3vmin; box-shadow: inset 0 0 4vmin rgba(255,255,255,.12); }
+}

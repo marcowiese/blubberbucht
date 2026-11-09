@@ -1,7 +1,7 @@
 // Blubberbucht – Spiellogik
 'use strict';
 
-const APP_VERSION = '1.22.1'; // nicht von Hand ändern: tools/release.sh <version>
+const APP_VERSION = '1.22.2'; // nicht von Hand ändern: tools/release.sh <version>
 const TRAY = 6, BOWLS = 4, BOWL_PRICE = 650, BOOSTER_PRICE = 200;
 const SAVE_KEY = 'blubberbucht-v1';
 const $ = s => document.querySelector(s);
@@ -137,7 +137,6 @@ function dropEmpty() {
   const before = G.bubbles.length;
   G.bubbles = G.bubbles.filter(b => b.items.length);
   if (window.SIM) { if (G.bubbles.length !== before) relayout(); return; }
-  physWake();
 }
 
 // ---------- Echtzeit-Physik: Schwerkraft, Wasserwiderstand, Masse (große Blasen schubsen kleine), leichtes Abprallen ----------
@@ -410,8 +409,11 @@ function animateMoves(before, stagger = false) {
 function commit(fn, stagger = false) {
   if (window.SIM) { fn(); if (G) dropEmpty(); return; }
   const before = captureRects();
+  const ids0 = G ? G.bubbles.map(b => b.id).join() : '';
   fn();
   if (G) dropEmpty();
+  // Physik nur wecken, wenn wirklich eine Blase geplatzt ist oder neu dazukam – sonst bleibt alles ruhig liegen
+  if (G && G.bubbles.map(b => b.id).join() !== ids0) physWake();
   render();
   animateMoves(before, stagger);
   // Sicherheitsnetz: Kein Tier darf ohne laufenden Flug unsichtbar bleiben
