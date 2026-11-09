@@ -1,7 +1,7 @@
 // Blubberbucht – Spiellogik
 'use strict';
 
-const APP_VERSION = '1.18.1'; // nicht von Hand ändern: tools/release.sh <version>
+const APP_VERSION = '1.19.0'; // nicht von Hand ändern: tools/release.sh <version>
 const TRAY = 6, BOWLS = 4, BOWL_PRICE = 650, BOOSTER_PRICE = 200;
 const SAVE_KEY = 'blubberbucht-v1';
 const $ = s => document.querySelector(s);
@@ -41,7 +41,7 @@ function levelParams(L) {
   };
 }
 
-const COLS_X = [17.5, 50, 82.5], R0 = 17.4, PLAY_H = 102;
+const COLS_X = [17.5, 50, 82.5], R0 = 17.4, PLAY_H = 103;
 
 let G = null;
 
@@ -82,12 +82,13 @@ function genLevel(L) {
 // ---------- Hilfsfunktionen zum Zustand ----------
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 // Nur Blasen, die (fast) ganz im Bild sind, lassen sich antippen
-function isBlocked(b) { return b.y < b.r * .55; }
+// Eine Blase ist nur im Spiel, wenn sie vollständig im Spielfeld liegt – sonst wartet sie unsichtbar oberhalb
+function isBlocked(b) { return b.y - b.r < -.5; }
 // Schwerkraft: Blasen jeder Spalte liegen von unten nach oben aufeinander
 function relayout() {
   const byId = new Map(G.bubbles.map(b => [b.id, b]));
   G.cols.forEach((col, c) => {
-    let y = G.H - (c === 1 ? R0 * .9 : 1), prev = null;
+    let y = G.H - (c === 1 ? R0 * .5 : .5), prev = null;
     for (const id of col) {
       const b = byId.get(id);
       y -= prev ? (prev.r + b.r) * .84 : b.r;   // Blasen überlappen leicht, wie aufgetürmt
@@ -171,7 +172,7 @@ function renderBoard() {
   const existing = new Map([...stage.children].map(e => [e.dataset.b, e]));
   const keep = new Set();
   for (const b of G.bubbles) {
-    if (!b.items.length) continue;
+    if (!b.items.length || isBlocked(b)) continue;   // wartende Blasen werden gar nicht gezeichnet
     const id = String(b.id); keep.add(id);
     const d = b.r * 2 * s, left = (b.x - b.r) * s, top = (b.y - b.r) * s;
     let el = existing.get(id);
@@ -521,10 +522,14 @@ function boostBrush() {
     take.forEach((u, i) => G.cr[u].slot = i);
     const b = { id: G.nextB++, cap: take.length, items: take, r: R0 * [0, .74, .88, 1][take.length], jx: (Math.random() - .5) * 4, x: 50, y: -50 };
     G.bubbles.push(b);
-    // in die Spalte mit den wenigsten sichtbaren Blasen, ganz oben im sichtbaren Bereich
-    let best = 0, bestN = 1e9;
-    G.cols.forEach((col, c) => { const nVis = col.filter(id => !isBlocked(G.bubbles.find(x => x.id === id))).length; if (nVis < bestN) { bestN = nVis; best = c; } });
-    G.cols[best].splice(bestN, 0, b.id);
+    // ganz unten in die Spalte mit dem meisten freien Platz – so ist die neue Blase sofort sichtbar
+    let best = 0, bestFree = -1e9;
+    G.cols.forEach((col, c) => {
+      const vis = col.map(id => G.bubbles.find(x => x.id === id)).filter(x => x && !isBlocked(x));
+      const free = vis.length ? Math.min(...vis.map(x => x.y - x.r)) : G.H;
+      if (free > bestFree) { bestFree = free; best = c; }
+    });
+    G.cols[best].unshift(b.id);
   });
   return true;
 }

@@ -541,3 +541,6 @@ body.no-anim .bubble, body.no-anim .bubble .cr { transition: none !important; }
   box-shadow: inset 0 0 calc(2 * var(--u)) rgba(255,255,255,.22), 0 calc(1 * var(--u)) calc(2 * var(--u)) rgba(0,40,90,.18);
 }
 .bubble::after { width: 16%; height: 8%; left: 20%; top: 13%; background: rgba(255,255,255,.28); filter: blur(1px); }
+/* Spielfeld nicht mehr unter die Ablage schieben; Inhalt sicher am Rand abschneiden (auch in Safari) */
+.board { margin-top: calc(1.5 * var(--u)); }
+#stage { overflow: hidden; contain: paint; isolation: isolate; }
