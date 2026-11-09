@@ -1,7 +1,7 @@
 // Blubberbucht – Spiellogik
 'use strict';
 
-const APP_VERSION = '1.19.2'; // nicht von Hand ändern: tools/release.sh <version>
+const APP_VERSION = '1.20.0'; // nicht von Hand ändern: tools/release.sh <version>
 const TRAY = 6, BOWLS = 4, BOWL_PRICE = 650, BOOSTER_PRICE = 200;
 const SAVE_KEY = 'blubberbucht-v1';
 const $ = s => document.querySelector(s);
@@ -52,7 +52,11 @@ function genLevel(L) {
   const H = PLAY_H, T = p.T;
   // jede Blase startet mit genau 3 Tieren
   const caps = Array(T).fill(3);
-  const bubbles = caps.map((cap, i) => ({ id: i, cap, items: [], r: R0 * [0, .74, .88, 1][cap], jx: (Math.random() - .5) * 4, x: 50, y: -50 }));
+  // verschiedene Blasengrößen; Startpositionen als lockerer Haufen, die Physik ordnet sie danach
+  const bubbles = caps.map((cap, i) => {
+    const r = R0 * (.84 + Math.random() * .3);
+    return { id: i, cap, items: [], r, x: r + Math.random() * (100 - 2 * r), y: H - r - i * 9 - Math.random() * 6 };
+  });
   // Spalten: Index 0 = ganz unten, weiter oben warten Blasen außerhalb des Bildes
   const cols = [[], [], []];
   bubbles.forEach((b, i) => cols[i % 3].push(b.id));
@@ -85,17 +89,31 @@ const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 // Eine Blase ist nur im Spiel, wenn sie vollständig im Spielfeld liegt – sonst wartet sie unsichtbar oberhalb
 function isBlocked(b) { return b.y - b.r < -.5; }
 // Schwerkraft: Blasen jeder Spalte liegen von unten nach oben aufeinander
-function relayout() {
-  const byId = new Map(G.bubbles.map(b => [b.id, b]));
-  G.cols.forEach((col, c) => {
-    let y = G.H - (c === 1 ? R0 * .5 : .5), prev = null;
-    for (const id of col) {
-      const b = byId.get(id);
-      y -= prev ? (prev.r + b.r) * .84 : b.r;   // Blasen überlappen leicht, wie aufgetürmt
-      b.x = clamp(COLS_X[c] + b.jx, b.r, 100 - b.r); b.y = y;
-      prev = b;
+// Physik statt fester Spalten: Schwerkraft zieht alle Blasen nach unten, überlappende Blasen schieben
+// sich gegenseitig weg und rollen dabei seitlich ab. So rutschen Blasen schräg und nicht vorhersehbar nach.
+const SQUEEZE = .9;          // wie stark sich Blasen berühren/überlappen dürfen
+function relayout(iter = 140) {
+  const B = G.bubbles, H = G.H, n = B.length;
+  for (let it = 0; it < iter; it++) {
+    for (const b of B) b.y += .6;                                    // Schwerkraft
+    for (let pass = 0; pass < 3; pass++) {
+      for (let i = 0; i < n; i++) {
+        const a = B[i];
+        for (let j = i + 1; j < n; j++) {
+          const b = B[j], dx = b.x - a.x, dy = b.y - a.y, min = (a.r + b.r) * SQUEEZE;
+          if (Math.abs(dx) >= min || Math.abs(dy) >= min) continue;
+          const d2 = dx * dx + dy * dy;
+          if (d2 >= min * min) continue;
+          const d = Math.sqrt(d2) || .01, push = (min - d) / 2, nx = d > .01 ? dx / d : (Math.random() - .5), ny = d > .01 ? dy / d : 1;
+          // die untere Blase gibt weniger nach als die obere (wirkt wie Gewicht)
+          const wa = a.y > b.y ? .35 : .65, wb = 1 - wa;
+          a.x -= nx * push * 2 * wa; a.y -= ny * push * 2 * wa;
+          b.x += nx * push * 2 * wb; b.y += ny * push * 2 * wb;
+        }
+      }
+      for (const b of B) { b.x = clamp(b.x, b.r, 100 - b.r); if (b.y > H - b.r) b.y = H - b.r; }
     }
-  });
+  }
 }
 // leere Blasen entfernen -> die darüber rutschen nach
 function dropEmpty() {
@@ -523,16 +541,10 @@ function boostBrush() {
   commit(() => {
     const take = G.tray.splice(0, Math.min(3, G.tray.length));
     take.forEach((u, i) => G.cr[u].slot = i);
-    const b = { id: G.nextB++, cap: take.length, items: take, r: R0 * [0, .74, .88, 1][take.length], jx: (Math.random() - .5) * 4, x: 50, y: -50 };
+    const r = R0 * [0, .74, .88, 1][take.length];
+    // neue Blase landet unten im Spielfeld (sofort antippbar), die anderen werden nach oben geschoben
+    const b = { id: G.nextB++, cap: take.length, items: take, r, x: r + Math.random() * (100 - 2 * r), y: G.H - r };
     G.bubbles.push(b);
-    // ganz unten in die Spalte mit dem meisten freien Platz – so ist die neue Blase sofort sichtbar
-    let best = 0, bestFree = -1e9;
-    G.cols.forEach((col, c) => {
-      const vis = col.map(id => G.bubbles.find(x => x.id === id)).filter(x => x && !isBlocked(x));
-      const free = vis.length ? Math.min(...vis.map(x => x.y - x.r)) : G.H;
-      if (free > bestFree) { bestFree = free; best = c; }
-    });
-    G.cols[best].unshift(b.id);
   });
   return true;
 }
@@ -582,7 +594,7 @@ function startLevel(L) {
   showScreen('game');
   requestAnimationFrame(() => {
     G = genLevel(L);
-    relayout();
+    relayout(800);                     // Starthaufen einmal komplett „setzen“ lassen
     settle();
     $('#stage').innerHTML = '';
     render();
