@@ -545,7 +545,7 @@ body.no-anim .bubble, body.no-anim .bubble .cr { transition: none !important; }
 .board { margin-top: calc(1.5 * var(--u)); }
 #stage { overflow: hidden; contain: paint; isolation: isolate; }
 /* Angedeutete nächste Blase: sichtbar, aber deutlich noch nicht aktiv */
-.bubble.peek { filter: saturate(.5) brightness(.82); opacity: .75; pointer-events: none; }
+.bubble.peek { pointer-events: none; }
 .bubble.peek .cr { animation: none !important; }
 
 /* ---------- Entwicklermodus ---------- */
@@ -620,7 +620,7 @@ body.no-anim .bubble, body.no-anim .bubble .cr { transition: none !important; }
   text-shadow: 0 .06em 0 rgba(0,30,70,.6), 0 0 .3em rgba(0,30,70,.5); filter: drop-shadow(0 .05em .1em rgba(0,0,0,.3)); }
 .bubble .bx i { font-style: normal; font-size: .8em; }
 .bubble .bx.corner { left: 82%; top: 16%; }
-.bubble.k-lock .cr, .bubble.k-ice .cr, .bubble.k-algae .cr { filter: saturate(.55) brightness(.8); }
+.bubble.k-lock .cr, .bubble.k-ice .cr, .bubble.k-algae .cr { opacity: .6; }
 .bubble.k-lock { background: radial-gradient(circle at 50% 50%, rgba(40,40,70,.18), rgba(40,40,70,.35)); border-color: rgba(255,215,90,.9); }
 .bubble.k-key { box-shadow: 0 0 0 calc(.6 * var(--u)) rgba(255,215,90,.75), 0 0 calc(3 * var(--u)) rgba(255,215,90,.6); }
 .bubble.k-ice { background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.75), rgba(190,235,255,.6) 45%, rgba(120,190,240,.7) 100%); border-color: #eafaff; box-shadow: inset 0 0 calc(3 * var(--u)) #fff, 0 0 calc(2 * var(--u)) rgba(150,220,255,.8); }
@@ -638,3 +638,19 @@ body.no-anim .bubble, body.no-anim .bubble .cr { transition: none !important; }
 .sp-demo { display: flex; justify-content: center; gap: calc(4 * var(--u)); margin: calc(3 * var(--u)) 0 calc(1 * var(--u)); }
 .sp-demo .bubble { position: relative; width: calc(26 * var(--u)); height: calc(26 * var(--u)); transform: none !important; }
 .sp-demo .bubble .bx { font-size: calc(7 * var(--u)); }
+
+/* Inaktive (angedeutete) Blasen ohne Bildfilter abdunkeln – Filter blitzen in Safari/Chrome beim ersten Antippen kurz auf */
+.bubble { will-change: auto; }
+.bubble.peek .cr { opacity: .55; }
+.bubble.peek::before { content: ''; position: absolute; inset: 0; border-radius: 50%; background: rgba(8,40,90,.28); z-index: 3; pointer-events: none; }
+.cr-img { filter: none; }
+.bubble .cr-img { filter: drop-shadow(0 calc(.5 * var(--u)) calc(.4 * var(--u)) rgba(0,30,70,.3)); }
+.bubble.peek .cr-img { filter: none; }
+/* Inaktive Blasen deutlicher abdunkeln */
+.bubble.peek .cr { opacity: .4; }
+.bubble.peek::before { background: rgba(8,40,90,.42); }
+/* Android: Apps werden bis unter die Navigationsleiste gezeichnet – unten Platz lassen */
+html.android .screen { padding-bottom: max(env(safe-area-inset-bottom), 12px); }
+@media (display-mode: standalone) {
+  html.android .screen { padding-bottom: max(env(safe-area-inset-bottom), 44px); }
+}

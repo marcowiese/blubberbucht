@@ -1,7 +1,7 @@
 // Blubberbucht – Spiellogik
 'use strict';
 
-const APP_VERSION = '1.24.0'; // nicht von Hand ändern: tools/release.sh <version>
+const APP_VERSION = '1.24.1'; // nicht von Hand ändern: tools/release.sh <version>
 const TRAY = 6, BOWLS = 4, BOWL_PRICE = 650, BOOSTER_PRICE = 200;
 const SAVE_KEY = 'blubberbucht-v1';
 const $ = s => document.querySelector(s);
@@ -43,7 +43,7 @@ function levelParams(L) {
   };
 }
 
-const COLS_X = [17.5, 50, 82.5], R0 = 17.4, PLAY_H = 103, PLAY_H_MIN = 92, PLAY_H_MAX = 128;
+const COLS_X = [17.5, 50, 82.5], R0 = 17.4, PLAY_H = 103, PLAY_H_MIN = 92, PLAY_H_MAX = 165;
 
 let G = null;
 const CAP_R = { 1: .72, 2: .84, 3: 1, 4: 1.14, 5: 1.25 };   // Blasengröße je nach Anzahl Tiere
@@ -66,7 +66,7 @@ function genLevel(L) {
   // in engen Grenzen – und bleibt dann bis zum Levelende fest, Drehen bringt also keinen Vorteil.
   const bw = board.clientWidth, bh = board.clientHeight;
   const H = bw > 0 ? clamp(Math.round(100 * bh / bw), PLAY_H_MIN, PLAY_H_MAX) : PLAY_H, T = p.T;
-  const rk = clamp(Math.sqrt(H / PLAY_H), .9, 1.1);   // Blasengröße so anpassen, dass auf jedem Gerät ähnlich viele Blasen im Spiel sind
+  const rk = clamp(Math.sqrt(H / PLAY_H), .9, 1.15);   // Blasengröße so anpassen, dass auf jedem Gerät ähnlich viele Blasen im Spiel sind
   // Blasen mit 2 (klein), 3 (mittel) oder 4–5 Tieren (groß) – zusammen genau T*3 Tiere
   const caps = makeCaps(T * 3);
   // verschiedene Blasengrößen; Startpositionen als lockerer Haufen, die Physik ordnet sie danach
@@ -742,8 +742,10 @@ function boostShuffle() {
   if (all.length < 2) { toast('Hier gibt es nichts mehr zu mischen.'); return false; }
   shuffle(all);
   let k = 0;
-  commit(() => G.bubbles.forEach(b => {
-    const slots = b.items.map(u => G.cr[u].slot), n = b.items.length;
+  // erst ALLE bisherigen Plätze merken, dann neu verteilen – sonst erbt ein Tier den Platz eines anderen
+  const slotsByBubble = G.bubbles.map(b => b.items.map(u => G.cr[u].slot));
+  commit(() => G.bubbles.forEach((b, bi) => {
+    const slots = slotsByBubble[bi], n = b.items.length;
     b.items = all.slice(k, k + n); k += n;
     b.items.forEach((u, i) => G.cr[u].slot = slots[i]);
   }));
@@ -1416,6 +1418,7 @@ const BOOSTER_ICONS = {
 
 // ---------- Start ----------
 function init() {
+  if (/Android/i.test(navigator.userAgent)) document.documentElement.classList.add('android');
   buildSpeciesDefs();
   document.querySelectorAll('.coin-pill .ci').forEach(e => e.innerHTML = COIN);
   $('#menu-version').textContent = `v${APP_VERSION}`;
