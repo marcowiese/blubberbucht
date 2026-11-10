@@ -1,7 +1,7 @@
 // Blubberbucht – Spiellogik
 'use strict';
 
-const APP_VERSION = '1.25.4'; // nicht von Hand ändern: tools/release.sh <version>
+const APP_VERSION = '1.25.5'; // nicht von Hand ändern: tools/release.sh <version>
 const TRAY = 6, BOWLS = 4, BOWL_PRICE = 650, BOOSTER_PRICE = 200;
 const SAVE_KEY = 'blubberbucht-v1';
 const $ = s => document.querySelector(s);
@@ -159,6 +159,7 @@ const SPECIAL_INFO = {
   pearl: { title: 'Perlenblase', icon: '⚪', text: 'In dieser schimmernden Blase siehst du die Tiere noch nicht. Sie <b>öffnet sich erst, wenn sie den Boden berührt</b>.', hint: 'Öffnet sich erst am Boden' },
 };
 const isLocked = b => !!b.kind && b.kind !== 'key' && !b.open;
+const devNextSpecials = new Set();     // im Entwicklermodus für das nächste Level gewählt
 function assignSpecials(L) {
   const order = [...G.bubbles].sort((a, b) => b.y - a.y);          // von unten nach oben
   const pickIn = (lo, hi) => { const c = []; for (let i = lo; i <= Math.min(hi, order.length - 1); i++) if (!order[i].kind) c.push(i); return c.length ? c[rand(c.length)] : -1; };
@@ -167,8 +168,10 @@ function assignSpecials(L) {
   const avail = Object.keys(SPECIAL_FROM).filter(k => L >= SPECIAL_FROM[k]);
   const forced = avail.find(k => SPECIAL_FROM[k] === L);
   const max = tierOf(L) ? 0 : 2;
-  const chosen = new Set(forced ? [forced] : []);
+  let chosen = new Set(forced ? [forced] : []);
   for (const k of shuffle(avail.filter(k => k !== forced))) if (chosen.size < Math.max(max, chosen.size) && chosen.size < max && Math.random() < .6) chosen.add(k);
+  // Entwicklermodus: gewählte Spezialblasen gelten für genau dieses (nächste) Level – unabhängig von der Levelnummer
+  if (!window.SIM && devNextSpecials.size) { chosen = new Set(devNextSpecials); devNextSpecials.clear(); }
   const chance = k => chosen.has(k) ? 1 : 0;
   if (Math.random() < chance('lock')) {
     // Schloss früh im Bild, Schlüssel deutlich weiter oben (kommt erst später ins Spiel)
@@ -1226,6 +1229,11 @@ function openDev(back) {
       <button class="btn blue" data-act="coins">Setzen</button></div>
     <button class="btn blue" data-act="boosters">+5 von jedem Booster</button>
     <button class="btn blue" data-act="unlock">Alle Arten entdecken & fangen</button>
+    <div class="devspecial"><b>Spezialblasen im nächsten Level</b>
+      ${[['lock', '🔒 Schloss & 🔑'], ['ice', '❄️ Eis'], ['algae', '🌿 Algen'], ['pearl', '⚪ Perle']].map(([k, t]) =>
+        `<label class="devcheck"><input type="checkbox" data-sp="${k}" ${devNextSpecials.has(k) ? 'checked' : ''}> ${t}</label>`).join('')}
+      <small>Gilt für das nächste gestartete Level (z. B. über „Spielen“ oben), danach wieder zufällig.</small>
+    </div>
     ${inGame ? `<div class="devrow two"><button class="btn green" data-act="win">Level gewinnen</button><button class="btn orange" data-act="lose">Level verlieren</button></div>
       <button class="btn blue" data-act="bowls">Alle Aquarien öffnen</button>` : ''}
     <div class="devrow two"><button class="btn ghost" data-act="tut">Tutorial zurücksetzen</button><button class="btn ghost" data-act="daily">Tagesbonus zurücksetzen</button></div>
@@ -1556,6 +1564,8 @@ function init() {
     if (a && modalActs[a.dataset.act]) { Sfx.click(); modalActs[a.dataset.act](); }
   });
   $('#modal').addEventListener('change', e => {
+    const sp = e.target.dataset && e.target.dataset.sp;
+    if (sp) { e.target.checked ? devNextSpecials.add(sp) : devNextSpecials.delete(sp); return; }
     const k = e.target.dataset.set;
     if (!k) return;
     save[k] = e.target.checked; persist();
