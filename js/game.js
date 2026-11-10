@@ -1,7 +1,7 @@
 // Blubberbucht – Spiellogik
 'use strict';
 
-const APP_VERSION = '1.25.0'; // nicht von Hand ändern: tools/release.sh <version>
+const APP_VERSION = '1.25.1'; // nicht von Hand ändern: tools/release.sh <version>
 const TRAY = 6, BOWLS = 4, BOWL_PRICE = 650, BOOSTER_PRICE = 200;
 const SAVE_KEY = 'blubberbucht-v1';
 const $ = s => document.querySelector(s);
@@ -103,7 +103,7 @@ function genLevel(L) {
 // ---------- Hilfsfunktionen zum Zustand ----------
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 // Nur Blasen, die (fast) ganz im Bild sind, lassen sich antippen
-// Eine Blase ist im Spiel, sobald ALLE Tiere darin vollständig sichtbar sind – der Blasenrand darf oben
+// Eine Blase ist im Spiel, sobald alle Tiere darin gut erkennbar sind (je ca. 2/3 sichtbar) – der Blasenrand darf oben
 // noch etwas unter der Ablage stecken. Sonst wartet sie (angedeutet oder unsichtbar) oberhalb.
 function isBlocked(b) {
   if (!b.items.length) return b.y - b.r < -.5;
@@ -111,7 +111,7 @@ function isBlocked(b) {
   let top = Infinity;
   b.items.forEach((u, i) => {
     const p = pos[G.cr[u].slot] || pos[i] || POS[3][i];
-    top = Math.min(top, b.y - b.r + (p[1] - p[2] * .42) * 2 * b.r);   // Oberkante des Tieres (Bildrand etwas eingerückt)
+    top = Math.min(top, b.y - b.r + (p[1] - p[2] * .17) * 2 * b.r);   // Tier muss nur zu ca. zwei Dritteln sichtbar sein
   });
   return top < -.3;
 }
