@@ -664,3 +664,9 @@ html.android .screen { padding-bottom: max(env(safe-area-inset-bottom), 12px); }
 .fx-drop { position: fixed; width: 7px; height: 10px; margin: -5px 0 0 -3px; border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; background: radial-gradient(circle at 35% 35%, #fff, #8fdcff 60%, #4fb0f0); box-shadow: 0 0 4px rgba(150,220,255,.8); }
 .fx-leaf, .fx-key { position: fixed; line-height: 1; pointer-events: none; filter: drop-shadow(0 2px 3px rgba(0,30,70,.4)); }
 .fx-key { z-index: 995; }
+/* Versionsnummer im Menü immer über einer (Android-)Navigationsleiste */
+:root { --sb: env(safe-area-inset-bottom, 0px); }
+html.android { --sb: max(env(safe-area-inset-bottom, 0px), 12px); }
+@media (display-mode: standalone) { html.android { --sb: max(env(safe-area-inset-bottom, 0px), 44px); } }
+.menu-version { bottom: calc(var(--sb) + 1 * var(--u)); z-index: 5; }
+.panel .version[data-devtap] { cursor: default; padding: calc(1.5 * var(--u)) 0; }

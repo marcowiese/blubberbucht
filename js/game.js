@@ -1,7 +1,7 @@
 // Blubberbucht – Spiellogik
 'use strict';
 
-const APP_VERSION = '1.25.1'; // nicht von Hand ändern: tools/release.sh <version>
+const APP_VERSION = '1.25.2'; // nicht von Hand ändern: tools/release.sh <version>
 const TRAY = 6, BOWLS = 4, BOWL_PRICE = 650, BOOSTER_PRICE = 200;
 const SAVE_KEY = 'blubberbucht-v1';
 const $ = s => document.querySelector(s);
@@ -1057,7 +1057,7 @@ function openSettings() {
     ${inGame ? `<button class="btn blue" data-act="tutorial">❓ Anleitung zeigen</button><button class="btn orange" data-act="restart">Level neu starten</button><button class="btn ghost" data-act="menu">Hauptmenü</button>` : ''}
     <button class="btn green" data-act="close">Weiter</button>
     ${inGame ? '' : `<button class="btn blue" data-act="transfer">💾 Spielstand übertragen</button><button class="btn link" data-act="reset">Fortschritt zurücksetzen</button>`}
-    <p class="version">Blubberbucht v${APP_VERSION} · von Hase Games</p>`, {
+    <p class="version" data-devtap>Blubberbucht v${APP_VERSION} · von Hase Games</p>`, {
     close: hideModal,
     restart: () => startLevel(G.level),
     tutorial: () => { hideModal(); tutStart(); },
@@ -1548,6 +1548,7 @@ function init() {
       ${Object.entries(BOOSTER_INFO).map(([k, v]) => `<div class="binfo"><div class="ricon">${BOOSTER_ICONS[k]}</div><div><b>${v.name}</b><br>${v.desc}</div></div>`).join('')}
       <button class="btn green" data-act="close">Alles klar</button>`, { close: hideModal });
   });
+  $('#modal').addEventListener('click', e => { if (e.target.closest('[data-devtap]')) devTap(); });
   $('#modal').addEventListener('click', e => {
     const a = e.target.closest('[data-act]');
     if (a && modalActs[a.dataset.act]) { Sfx.click(); modalActs[a.dataset.act](); }
