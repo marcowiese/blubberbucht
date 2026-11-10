@@ -677,3 +677,13 @@ html.android { --sb: max(env(safe-area-inset-bottom, 0px), 12px); }
 .devspecial b { display: block; font-size: calc(4 * var(--u)); margin-bottom: calc(1 * var(--u)); }
 .devspecial .devcheck { font-size: calc(4 * var(--u)); margin-top: calc(1 * var(--u)); }
 .devspecial small { display: block; font-size: calc(3.2 * var(--u)); opacity: .75; margin-top: calc(1.4 * var(--u)); }
+
+/* ---------- Kein Wackeln beim vollen Aquarium ----------
+   Leuchten ohne Vergrößern (transform) und ohne Bildfilter auf großen Flächen; Leiste, Ablage und
+   Spielfeld sind feste, getrennte Ebenen, damit Animationen oben das Spielfeld nicht neu anordnen. */
+.shelf, .tray, .board { isolation: isolate; will-change: transform; transform: translateZ(0); }
+.bowl.done { animation: none; }
+.bowl.done .bowl-svg { animation: bowlglow .8s ease-out; }
+@keyframes bowlglow { 40% { opacity: .75; } }
+.card.done, .shelf .card.done { animation: cardglow .8s ease-out; }
+@keyframes cardglow { 40% { box-shadow: 0 0 0 calc(.8 * var(--u)) #fff59a, 0 0 calc(4 * var(--u)) #fff59a; } }
