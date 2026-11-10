@@ -1,7 +1,7 @@
 // Blubberbucht – Spiellogik
 'use strict';
 
-const APP_VERSION = '1.24.4'; // nicht von Hand ändern: tools/release.sh <version>
+const APP_VERSION = '1.25.0'; // nicht von Hand ändern: tools/release.sh <version>
 const TRAY = 6, BOWLS = 4, BOWL_PRICE = 650, BOOSTER_PRICE = 200;
 const SAVE_KEY = 'blubberbucht-v1';
 const $ = s => document.querySelector(s);
@@ -184,12 +184,81 @@ function assignSpecials(L) {
 }
 function openSpecial(o) {
   if (o.open) return;
+  const kind = o.kind;
   o.open = true;
   if (window.SIM) return;
   const el = document.querySelector(`[data-b="${o.id}"]`);
-  if (el) { sparkleAt(el.getBoundingClientRect(), 16); el.classList.add('unlock'); }
-  Sfx.match(); vib(20);
+  const rect = el && el.style.display !== 'none' ? el.getBoundingClientRect() : null;
+  // Hülle (Eis, Algen, Perle, Schloss) als Kopie über die Blase legen – die echte Blase wird sofort normal
+  // gezeichnet, die Kopie animiert sich weg. So springt die Blase nicht.
+  const shell = rect ? specialShell(el, rect) : null;
   renderBoard();
+  if (!rect) return;
+  vib(20);
+  const cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2;
+  if (kind === 'ice') {
+    Sfx.burst();
+    shell.animate([{ opacity: 1, transform: 'scale(1)', filter: 'brightness(1)' }, { opacity: .8, transform: 'scale(1.02)', filter: 'brightness(1.25)', offset: .3 }, { opacity: 0, transform: 'scale(1.06)', filter: 'brightness(1.4)' }],
+      { duration: 900, easing: 'ease-in', fill: 'forwards' }).onfinish = () => shell.remove();
+    for (let i = 0; i < 9; i++) {                                   // Schmelzwasser tropft herunter
+      const d = document.createElement('div'); d.className = 'fx-drop';
+      const x = rect.left + rect.width * (.2 + Math.random() * .6), y = rect.top + rect.height * (.55 + Math.random() * .3);
+      Object.assign(d.style, { left: x + 'px', top: y + 'px' });
+      fx().appendChild(d);
+      d.animate([{ transform: 'translateY(0) scale(1)', opacity: 0 }, { opacity: 1, offset: .15 }, { transform: `translateY(${40 + Math.random() * 50}px) scale(.6)`, opacity: 0 }],
+        { duration: 700 + Math.random() * 500, delay: 150 + Math.random() * 400, easing: 'ease-in', fill: 'both' }).onfinish = () => d.remove();
+    }
+  } else if (kind === 'algae') {
+    Sfx.burst();
+    shell.animate([{ transform: 'rotate(0) scale(1)', opacity: 1 }, { transform: 'rotate(70deg) scale(1.35)', opacity: 0 }],
+      { duration: 800, easing: 'ease-out', fill: 'forwards' }).onfinish = () => shell.remove();
+    for (let i = 0; i < 8; i++) {                                   // Blättchen treiben davon
+      const a = i / 8 * Math.PI * 2, leaf = document.createElement('div'); leaf.className = 'fx-leaf'; leaf.textContent = '🌿';
+      Object.assign(leaf.style, { left: cx + Math.cos(a) * rect.width * .45 + 'px', top: cy + Math.sin(a) * rect.height * .45 + 'px', fontSize: rect.width * .16 + 'px' });
+      fx().appendChild(leaf);
+      leaf.animate([{ transform: 'translate(-50%,-50%) rotate(0)', opacity: 1 }, { transform: `translate(calc(-50% + ${Math.cos(a) * 60}px), calc(-50% + ${Math.sin(a) * 60 - 30}px)) rotate(${(Math.random() - .5) * 360}deg)`, opacity: 0 }],
+        { duration: 900, easing: 'ease-out', fill: 'forwards' }).onfinish = () => leaf.remove();
+    }
+  } else if (kind === 'pearl') {
+    Sfx.match();
+    const bottom = shell.cloneNode(true); fx().appendChild(bottom);
+    shell.style.clipPath = 'inset(0 0 50% 0)'; bottom.style.clipPath = 'inset(50% 0 0 0)';
+    shell.animate([{ transform: 'translateY(0) rotate(0)', opacity: 1 }, { transform: `translateY(${-rect.height * .45}px) rotate(-12deg)`, opacity: 0 }], { duration: 800, easing: 'cubic-bezier(.3,.7,.4,1)', fill: 'forwards' }).onfinish = () => shell.remove();
+    bottom.animate([{ transform: 'translateY(0) rotate(0)', opacity: 1 }, { transform: `translateY(${rect.height * .35}px) rotate(8deg)`, opacity: 0 }], { duration: 800, easing: 'cubic-bezier(.3,.7,.4,1)', fill: 'forwards' }).onfinish = () => bottom.remove();
+    sparkleAt(rect, 14);
+  } else if (kind === 'lock') {
+    // Schlüssel fliegt von der geplatzten Schlüsselblase (oder von oben) ins Schloss
+    const from = G.keyRect || { left: cx - 20, top: rect.top - 160, width: 40, height: 40 };
+    G.keyRect = null;
+    const key = document.createElement('div'); key.className = 'fx-key'; key.textContent = '🔑';
+    key.style.fontSize = rect.width * .26 + 'px';
+    Object.assign(key.style, { left: cx + 'px', top: cy + 'px' });
+    fx().appendChild(key);
+    const fx0 = from.left + from.width / 2 - cx, fy0 = from.top + from.height / 2 - cy;
+    const lockIcon = shell.querySelector('.bx');
+    key.animate([
+      { transform: `translate(calc(-50% + ${fx0}px), calc(-50% + ${fy0}px)) rotate(-30deg) scale(.8)` },
+      { transform: `translate(calc(-50% + ${fx0 * .45}px), calc(-50% + ${fy0 * .45 - 60}px)) rotate(20deg) scale(1.2)`, offset: .5 },
+      { transform: 'translate(-58%,-40%) rotate(45deg) scale(1)', offset: .85 },
+      { transform: 'translate(-58%,-40%) rotate(135deg) scale(1)' }],
+      { duration: 900, easing: 'ease-in-out', fill: 'forwards' }).onfinish = () => {
+        Sfx.match(); sparkleAt(rect, 18);
+        key.animate([{ opacity: 1 }, { opacity: 0, transform: 'translate(-58%,-40%) rotate(135deg) scale(1.4)' }], { duration: 350, fill: 'forwards' }).onfinish = () => key.remove();
+        shell.animate([{ opacity: 1, transform: 'scale(1)' }, { opacity: 0, transform: 'scale(1.15)' }], { duration: 450, fill: 'forwards' }).onfinish = () => shell.remove();
+        if (lockIcon) lockIcon.animate([{ transform: 'translate(-50%,-50%) rotate(0)' }, { transform: 'translate(-50%,-90%) rotate(-25deg) scale(1.2)' }], { duration: 450, fill: 'forwards' });
+      };
+    Sfx.click();
+  } else { shell && shell.remove(); }
+}
+// Kopie der Blasenhülle ohne Tiere, fest über der Blase positioniert
+function specialShell(el, rect) {
+  const c = el.cloneNode(true);
+  c.querySelectorAll('.cr').forEach(n => n.remove());
+  c.removeAttribute('data-b');
+  c.classList.add('fx-shell');
+  Object.assign(c.style, { position: 'fixed', left: rect.left + 'px', top: rect.top + 'px', width: rect.width + 'px', height: rect.height + 'px', transform: 'none', display: '' });
+  fx().appendChild(c);
+  return c;
 }
 // Tier aus Blase b genommen -> angrenzende Eisblasen tauen ein Stück
 function onFishTaken(b) {
@@ -608,6 +677,7 @@ function pick(uid) {
   }
   const bEl = document.querySelector(`[data-b="${b.id}"]`);
   const burst = b.items.length === 1 && bEl ? bEl.getBoundingClientRect() : null;
+  if (burst && b.kind === 'key') G.keyRect = burst;          // für den fliegenden Schlüssel
   commit(() => {
     b.items.splice(b.items.indexOf(uid), 1);
     onFishTaken(b);
