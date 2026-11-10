@@ -1,7 +1,7 @@
 // Blubberbucht – Spiellogik
 'use strict';
 
-const APP_VERSION = '1.25.6'; // nicht von Hand ändern: tools/release.sh <version>
+const APP_VERSION = '1.25.7'; // nicht von Hand ändern: tools/release.sh <version>
 const TRAY = 6, BOWLS = 4, BOWL_PRICE = 650, BOOSTER_PRICE = 200;
 const SAVE_KEY = 'blubberbucht-v1';
 const $ = s => document.querySelector(s);
@@ -289,7 +289,7 @@ const phys = { raf: 0, last: 0 };
 // Nach jeder Änderung (Blase geplatzt, neue Blase) werden alle wieder geweckt.
 function physWake() {
   if (window.SIM || !G) return;
-  G.bubbles.forEach(b => { b.sleep = false; b.still = 0; });
+  G.bubbles.forEach(b => { b.sleep = false; b.still = 0; b.anc = null; });
   phys.woke = performance.now();
   if (phys.raf) return;
   phys.last = performance.now(); phys.woke = phys.last;
@@ -302,7 +302,7 @@ function physFrame(now) {
   phys.last = now;
   let awake = 0;
   for (let i = 0; i < 3; i++) awake = physStep(dt / 3);
-  applyPositions();
+  applyPositions(true);
   checkSpecials();                       // Perle hat den Boden erreicht?
   // Sicherheitsnetz: spätestens 5 s nach der letzten Änderung ist alles in Ruhe
   if (awake > 0 && now - phys.woke < 5000) phys.raf = requestAnimationFrame(physFrame);
@@ -363,10 +363,13 @@ function physStep(dt) {
   for (const b of B) {
     if (b.sleep) continue;
     if (b.hold > now) { awake++; continue; }
-    if (b.support) { b.vx *= .95; b.vy *= .93; }           // leichte Reibung, wenn die Blase aufliegt -> kein Zittern
+    if (b.support) { const v = Math.hypot(b.vx, b.vy), k = v < 25 ? .82 : .95; b.vx *= k; b.vy *= k; }   // aufliegend: langsam -> stark bremsen (kein Pendeln)
     const v = Math.hypot(b.vx, b.vy);
-    b.still = b.support && v < 8 ? (b.still || 0) + 1 : 0;
-    if (b.still > 15) { b.sleep = true; b.vx = 0; b.vy = 0; }
+    // ruhig = aufliegend und langsam, ODER (z. B. schräg eingeklemmt) eine halbe Sekunde lang fast reglos
+    // Ankerpunkt: hat sich die Blase 0,35 s lang insgesamt kaum bewegt (z. B. schräg eingeklemmt), ist sie in Ruhe
+    if (!b.anc || Math.hypot(b.x - b.anc.x, b.y - b.anc.y) > .3) b.anc = { x: b.x, y: b.y, t: now };
+    b.still = b.support && v < 10 ? (b.still || 0) + 1 : 0;
+    if (b.still > 10 || now - b.anc.t > 350) { b.sleep = true; b.vx = 0; b.vy = 0; b.anc = null; }
     else awake++;
   }
   return awake;
@@ -475,7 +478,7 @@ function renderBoard() {
 }
 // Positionen aus der Physik übernehmen. Ganz oberhalb wartende Blasen sind unsichtbar,
 // angeschnittene sind nur angedeutet (nicht antippbar), nur vollständig sichtbare sind aktiv.
-function applyPositions() {
+function applyPositions(live) {   // live = Physik läuft noch -> nicht runden
   const s = G.s || 1, stage = $('#stage');
   for (const b of G.bubbles) {
     const el = stage.querySelector(`[data-b="${b.id}"]`);
@@ -483,8 +486,17 @@ function applyPositions() {
     const hidden = b.y + b.r < 1.5;
     el.style.display = hidden ? 'none' : '';
     if (hidden) continue;
-    // auf ganze Pixel gerundet – sonst springen Blasen beim Umbau der Grafik-Ebenen um Bruchteile eines Pixels
-    el.style.transform = `translate3d(${Math.round((b.x - b.r) * s)}px, ${Math.round((b.y - b.r) * s)}px, 0)`;
+    // Bewegt sich die Blase, stufenlos zeichnen (sonst ruckelt sie Pixel für Pixel); ruht sie, auf ganze Pixel setzen.
+    // Winzige Änderungen (≤ 1/2 Pixel) gar nicht erst zeichnen – das verhindert Mini-Zittern.
+    let px = (b.x - b.r) * s, py = (b.y - b.r) * s;
+    // Ruhend: auf ganze Pixel – aber nur, wenn sie dadurch nicht sichtbar springt (sonst Hin und Her 238,5 ↔ 239)
+    const rest = !live;
+    if (rest && Number.isInteger(el._px) && Number.isInteger(el._py) && Math.abs(px - el._px) <= .5 && Math.abs(py - el._py) <= .5) { px = el._px; py = el._py; }
+    else if (rest) { px = Math.round(px); py = Math.round(py); }
+    if (el._px === undefined || Math.abs(px - el._px) > .5 || Math.abs(py - el._py) > .5 || (rest && (px !== el._px || py !== el._py))) {
+      el._px = px; el._py = py;
+      el.style.transform = `translate3d(${px.toFixed(2)}px, ${py.toFixed(2)}px, 0)`;
+    }
     el.classList.toggle('peek', isBlocked(b));
   }
 }
