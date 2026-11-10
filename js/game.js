@@ -1,7 +1,7 @@
 // Blubberbucht – Spiellogik
 'use strict';
 
-const APP_VERSION = '1.23.2'; // nicht von Hand ändern: tools/release.sh <version>
+const APP_VERSION = '1.24.0'; // nicht von Hand ändern: tools/release.sh <version>
 const TRAY = 6, BOWLS = 4, BOWL_PRICE = 650, BOOSTER_PRICE = 200;
 const SAVE_KEY = 'blubberbucht-v1';
 const $ = s => document.querySelector(s);
@@ -10,7 +10,7 @@ const rand = n => Math.floor(Math.random() * n);
 const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = rand(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 
 // ---------- Speicherstand ----------
-const DEFAULTS = { level: 1, boosters: { net: 1, brush: 1, shuffle: 1 }, caught: {}, aquarium: [], sound: true, music: true, vib: true, seen: 3, coins: 100, stars: {}, tutorialDone: false, daily: { last: '', streak: 0 } };
+const DEFAULTS = { level: 1, boosters: { net: 1, brush: 1, shuffle: 1 }, caught: {}, aquarium: [], sound: true, music: true, vib: true, seen: 3, coins: 100, stars: {}, tutorialDone: false, daily: { last: '', streak: 0 }, specialsSeen: {} };
 let save = loadSave();
 function loadSave() {
   try {
@@ -25,7 +25,7 @@ const vib = ms => { if (canVibrate && save.vib) { try { navigator.vibrate(ms); }
 
 // ---------- Level-Aufbau ----------
 // Schwierigkeit: jedes 5. Level „Schwer“, jedes 10. „Extrem schwer“
-const DIFF = { s: .5, smax: 5, sl: 60, t0: 9, t: .35, tmax: 18, hardS: 1, hardT: 3, extS: 2, extT: 3 };
+const DIFF = { s: .5, smax: 5, sl: 60, t0: 9, t: .35, tmax: 18, hardS: 1, hardT: 3, extS: 1, extT: 3 };
 // Neue Art alle 3 Level (Level 1: 3 Arten). Fantasietiere kommen ab ca. Level 67.
 const unlockedCount = L => Math.min(SPECIES.length, 3 + Math.floor((L - 1) / 3));
 const tierOf = L => L >= 10 && L % 10 === 0 ? 2 : L >= 5 && L % 5 === 0 ? 1 : 0;
@@ -43,7 +43,7 @@ function levelParams(L) {
   };
 }
 
-const COLS_X = [17.5, 50, 82.5], R0 = 17.4, PLAY_H = 103, PLAY_H_MIN = 92, PLAY_H_MAX = 110;
+const COLS_X = [17.5, 50, 82.5], R0 = 17.4, PLAY_H = 103, PLAY_H_MIN = 92, PLAY_H_MAX = 128;
 
 let G = null;
 const CAP_R = { 1: .72, 2: .84, 3: 1, 4: 1.14, 5: 1.25 };   // Blasengröße je nach Anzahl Tiere
@@ -66,7 +66,7 @@ function genLevel(L) {
   // in engen Grenzen – und bleibt dann bis zum Levelende fest, Drehen bringt also keinen Vorteil.
   const bw = board.clientWidth, bh = board.clientHeight;
   const H = bw > 0 ? clamp(Math.round(100 * bh / bw), PLAY_H_MIN, PLAY_H_MAX) : PLAY_H, T = p.T;
-  const rk = Math.min(1, H / PLAY_H);   // flacheres Feld -> Blasen etwas kleiner, damit gleich viele hineinpassen
+  const rk = clamp(Math.sqrt(H / PLAY_H), .9, 1.1);   // Blasengröße so anpassen, dass auf jedem Gerät ähnlich viele Blasen im Spiel sind
   // Blasen mit 2 (klein), 3 (mittel) oder 4–5 Tieren (groß) – zusammen genau T*3 Tiere
   const caps = makeCaps(T * 3);
   // verschiedene Blasengrößen; Startpositionen als lockerer Haufen, die Physik ordnet sie danach
@@ -136,7 +136,69 @@ function relayout(iter = 140) {
 function dropEmpty() {
   const before = G.bubbles.length;
   G.bubbles = G.bubbles.filter(b => b.items.length);
-  if (window.SIM) { if (G.bubbles.length !== before) relayout(); return; }
+  if (window.SIM) { if (G.bubbles.length !== before) relayout(); checkSpecials(); return; }
+  if (G.bubbles.length !== before) checkSpecials();
+}
+
+// ---------- Spezialblasen: Schloss/Schlüssel, Eis, Algen, Perle ----------
+const SPECIAL_FROM = { lock: 8, ice: 12, algae: 16, pearl: 20 };
+const SPECIAL_INFO = {
+  lock: { title: 'Schloss & Schlüssel', icon: '🔒', text: 'Diese Blase ist verschlossen. Etwas später kommt eine <b>Schlüsselblase 🔑</b> von oben – leerst du sie, springt das Schloss auf.', hint: 'Verschlossen – leere zuerst die Schlüsselblase 🔑' },
+  ice: { title: 'Eisblase', icon: '❄️', text: 'Die Eisblase taut auf, wenn du <b>3 Tiere aus Blasen antippst, die sie berühren</b>. Die Zahl zeigt, wie viele noch fehlen.', hint: 'Gefroren – tippe Tiere aus den Nachbarblasen an' },
+  algae: { title: 'Algenblase', icon: '🌿', text: 'Die Algen lösen sich, wenn du <b>3 Aquarien vollständig füllst</b>. Die Zahl zeigt, wie viele noch fehlen.', hint: 'Zugewachsen – fülle weitere Aquarien' },
+  pearl: { title: 'Perlenblase', icon: '⚪', text: 'In dieser schimmernden Blase siehst du die Tiere noch nicht. Sie <b>öffnet sich erst, wenn sie den Boden berührt</b>.', hint: 'Öffnet sich erst am Boden' },
+};
+const isLocked = b => !!b.kind && b.kind !== 'key' && !b.open;
+function assignSpecials(L) {
+  const order = [...G.bubbles].sort((a, b) => b.y - a.y);          // von unten nach oben
+  const pickIn = (lo, hi) => { const c = []; for (let i = lo; i <= Math.min(hi, order.length - 1); i++) if (!order[i].kind) c.push(i); return c.length ? c[rand(c.length)] : -1; };
+  // Welche Arten kommen in Frage? Beim ersten Mal ist die neue Art garantiert dabei.
+  // Höchstens 2 Spezialblasen pro Level; schwere/extrem schwere Level bekommen keine zusätzlichen.
+  const avail = Object.keys(SPECIAL_FROM).filter(k => L >= SPECIAL_FROM[k]);
+  const forced = avail.find(k => SPECIAL_FROM[k] === L);
+  const max = tierOf(L) ? 0 : 2;
+  const chosen = new Set(forced ? [forced] : []);
+  for (const k of shuffle(avail.filter(k => k !== forced))) if (chosen.size < Math.max(max, chosen.size) && chosen.size < max && Math.random() < .6) chosen.add(k);
+  const chance = k => chosen.has(k) ? 1 : 0;
+  if (Math.random() < chance('lock')) {
+    // Schloss früh im Bild, Schlüssel deutlich weiter oben (kommt erst später ins Spiel)
+    const i = pickIn(1, Math.min(6, order.length - 4));
+    let k = i >= 0 ? pickIn(i + 5, order.length - 1) : -1;
+    if (i >= 0 && k < 0) k = pickIn(i + 3, order.length - 1);
+    if (i >= 0 && k >= 0) { Object.assign(order[i], { kind: 'lock', keyId: order[k].id }); Object.assign(order[k], { kind: 'key' }); }
+  }
+  if (Math.random() < chance('ice')) { const i = pickIn(1, 8); if (i >= 0) Object.assign(order[i], { kind: 'ice', count: 3 }); }
+  if (Math.random() < chance('algae')) { const i = pickIn(1, 8); if (i >= 0) Object.assign(order[i], { kind: 'algae', count: 3 }); }
+  if (Math.random() < chance('pearl')) { const i = pickIn(Math.min(6, order.length - 3), order.length - 1); if (i >= 0) Object.assign(order[i], { kind: 'pearl' }); }
+  G.bubbles.forEach(b => { if (b.kind) b.open = b.kind === 'key'; });
+}
+function openSpecial(o) {
+  if (o.open) return;
+  o.open = true;
+  if (window.SIM) return;
+  const el = document.querySelector(`[data-b="${o.id}"]`);
+  if (el) { sparkleAt(el.getBoundingClientRect(), 16); el.classList.add('unlock'); }
+  Sfx.match(); vib(20);
+  renderBoard();
+}
+// Tier aus Blase b genommen -> angrenzende Eisblasen tauen ein Stück
+function onFishTaken(b) {
+  for (const o of G.bubbles) {
+    if (o.kind !== 'ice' || o.open || o === b) continue;
+    if (Math.hypot(o.x - b.x, o.y - b.y) < (o.r + b.r) * 1.08) { o.count--; if (o.count <= 0) openSpecial(o); }
+  }
+}
+// Aquarium voll -> sichtbare Algenblasen verlieren eine Algenschicht
+function onBowlDone() {
+  for (const o of G.bubbles) if (o.kind === 'algae' && !o.open && o.y + o.r > 0) { o.count--; if (o.count <= 0) openSpecial(o); }
+}
+// Schlüssel weg -> Schloss auf; Perle am Boden -> offen
+function checkSpecials() {
+  for (const o of G.bubbles) {
+    if (o.open || !o.kind) continue;
+    if (o.kind === 'lock' && !G.bubbles.some(k => k.id === o.keyId)) openSpecial(o);
+    else if (o.kind === 'pearl' && o.y >= G.H - o.r - 1.5) openSpecial(o);
+  }
 }
 
 // ---------- Echtzeit-Physik: Schwerkraft, Wasserwiderstand, Masse (große Blasen schubsen kleine), leichtes Abprallen ----------
@@ -159,6 +221,7 @@ function physFrame(now) {
   let awake = 0;
   for (let i = 0; i < 3; i++) awake = physStep(dt / 3);
   applyPositions();
+  checkSpecials();                       // Perle hat den Boden erreicht?
   // Sicherheitsnetz: spätestens 5 s nach der letzten Änderung ist alles in Ruhe
   if (awake > 0 && now - phys.woke < 5000) phys.raf = requestAnimationFrame(physFrame);
   else { G.bubbles.forEach(b => { b.sleep = true; b.vx = 0; b.vy = 0; }); applyPositions(); }
@@ -304,6 +367,15 @@ function renderBoard() {
       stage.appendChild(el);
     }
     el.style.width = el.style.height = d + 'px';
+    // Spezialblasen: Aussehen und Anzeige (Zahl, Schloss, Schlüssel)
+    for (const k of ['lock', 'key', 'ice', 'algae', 'pearl']) el.classList.toggle('k-' + k, b.kind === k && (k === 'key' || !b.open));
+    let bx = el.querySelector('.bx');
+    const label = b.open && b.kind !== 'key' ? '' : b.kind === 'lock' ? '🔒' : b.kind === 'key' ? '🔑' : b.kind === 'ice' ? `<i>❄</i>${b.count}` : b.kind === 'algae' ? `<i>🌿</i>${b.count}` : '';
+    if (label) {
+      if (!bx) { bx = document.createElement('div'); bx.className = 'bx'; el.appendChild(bx); }
+      bx.innerHTML = label; bx.style.fontSize = (d * (b.kind === 'key' ? .2 : .24)) + 'px';
+      bx.classList.toggle('corner', b.kind === 'key');
+    } else if (bx) bx.remove();
     // Jedes Tier behält seinen Platz in der Blase – nichts rückt nach, wenn eines herausgenommen wird
     const pos = POS[b.cap] || POS[3];
     const crs = new Map([...el.querySelectorAll('.cr')].map(c => [c.dataset.uid, c]));
@@ -477,7 +549,7 @@ function sparkleAt(r, n = 14) {
 function completeBowl(bw) {
   bw.completing = true; G.pending++;
   const g = G, idx = G.bowls.indexOf(bw);
-  if (window.SIM) { G.collected += 3; bw.items = []; bw.sp = null; bw.completing = false; G.pending--; settle(); return; }
+  if (window.SIM) { G.collected += 3; bw.items = []; bw.sp = null; bw.completing = false; G.pending--; onBowlDone(); settle(); return; }
   setTimeout(() => {
     if (G !== g) return;
     const el = document.querySelector(`[data-bowl="${idx}"]`);
@@ -497,6 +569,7 @@ function completeBowl(bw) {
         save.aquarium.push(bw.sp);
         if (save.aquarium.length > 60) save.aquarium.shift();
         bw.items = []; bw.sp = null; bw.completing = false; G.pending--;
+        onBowlDone();
         settle();
       });
       persist();
@@ -517,6 +590,7 @@ function pick(uid) {
   const burst = b.items.length === 1 && bEl ? bEl.getBoundingClientRect() : null;
   commit(() => {
     b.items.splice(b.items.indexOf(uid), 1);
+    onFishTaken(b);
     if (bw) { bw.items.push(uid); if (bw.items.length === 3) completeBowl(bw); }
     else trayInsert(uid);
   });
@@ -536,6 +610,7 @@ function onBoardTap(e) {
   if (!b || !b.items.length) return;
   if (isMoving(b)) return;                    // Blase rutscht gerade noch – Tippen ignorieren
   if (isBlocked(b)) return;   // nur angedeutete Blase – noch nicht im Spiel
+  if (isLocked(b)) { shake(bEl); Sfx.error(); toast(SPECIAL_INFO[b.kind].hint); return; }
   let uid = e.target.closest('.cr[data-uid]')?.dataset.uid;
   if (!uid) {
     let best = 1e9;
@@ -712,6 +787,7 @@ function startLevel(L) {
   requestAnimationFrame(() => {
     G = genLevel(L);
     relayout(800);                     // Starthaufen einmal komplett „setzen“ lassen …
+    assignSpecials(L);
     if (!window.SIM) {
       // … und gestaffelt hineinfallen: untere Blasen zuerst, jede mit eigener Verzögerung, Höhe, Tempo und Seitenschwung
       const t0 = performance.now();
@@ -729,7 +805,16 @@ function startLevel(L) {
     startTimer();
     if (L === 1 && !save.tutorialDone) setTimeout(tutStart, 1800);
     const u = unlockedCount(L);
-    if (u > save.seen) {
+    const kinds = [...new Set(G.bubbles.map(b => b.kind === 'key' ? 'lock' : b.kind).filter(Boolean))];
+    const newKind = kinds.find(k => !(save.specialsSeen || {})[k]);
+    if (newKind && u <= save.seen) {
+      save.specialsSeen = { ...(save.specialsSeen || {}), [newKind]: true }; persist();
+      const info = SPECIAL_INFO[newKind];
+      setTimeout(() => showModal(`<div class="ribbon">Neu: ${info.title}</div>
+        <div class="sp-demo"><div class="bubble k-${newKind}"><div class="bx">${newKind === 'ice' || newKind === 'algae' ? `<i>${info.icon}</i>3` : newKind === 'pearl' ? '' : info.icon}</div></div>${newKind === 'lock' ? '<div class="bubble k-key"><div class="bx corner">🔑</div></div>' : ''}</div>
+        <p>${info.text}</p>
+        <button class="btn green" data-act="close">Verstanden!</button>`, { close: hideModal }), 2200);
+    } else if (u > save.seen) {
       const sp = SPECIES[u - 1];
       save.seen = u; persist();
       setTimeout(() => showModal(`
@@ -1125,7 +1210,7 @@ function tutStop() {
 function tutNext() {
   if (TUT.step === 1) {
     // passendes, antippbares Tier suchen
-    const u = G.bubbles.filter(b => b.items.length && !isBlocked(b)).flatMap(b => b.items).find(x => openBowlFor(G.cr[x].sp));
+    const u = G.bubbles.filter(b => b.items.length && !isBlocked(b) && !isLocked(b)).flatMap(b => b.items).find(x => openBowlFor(G.cr[x].sp));
     if (u) { TUT.target = u; TUT.step = 2; } else TUT.step = 4;
   } else if (TUT.step >= 3 && TUT.step < 7) TUT.step++;
   else if (TUT.step === 7) return tutStop();

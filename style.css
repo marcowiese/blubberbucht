@@ -613,3 +613,28 @@ body.no-anim .bubble, body.no-anim .bubble .cr { transition: none !important; }
 @media (orientation: portrait) and (max-width: 599px) {
   .shelf .card { height: calc(13.5 * var(--u)); }
 }
+
+/* ---------- Spezialblasen ---------- */
+.bubble .bx { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 5; pointer-events: none;
+  display: flex; align-items: center; gap: .1em; font-weight: 700; color: #fff; line-height: 1;
+  text-shadow: 0 .06em 0 rgba(0,30,70,.6), 0 0 .3em rgba(0,30,70,.5); filter: drop-shadow(0 .05em .1em rgba(0,0,0,.3)); }
+.bubble .bx i { font-style: normal; font-size: .8em; }
+.bubble .bx.corner { left: 82%; top: 16%; }
+.bubble.k-lock .cr, .bubble.k-ice .cr, .bubble.k-algae .cr { filter: saturate(.55) brightness(.8); }
+.bubble.k-lock { background: radial-gradient(circle at 50% 50%, rgba(40,40,70,.18), rgba(40,40,70,.35)); border-color: rgba(255,215,90,.9); }
+.bubble.k-key { box-shadow: 0 0 0 calc(.6 * var(--u)) rgba(255,215,90,.75), 0 0 calc(3 * var(--u)) rgba(255,215,90,.6); }
+.bubble.k-ice { background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.75), rgba(190,235,255,.6) 45%, rgba(120,190,240,.7) 100%); border-color: #eafaff; box-shadow: inset 0 0 calc(3 * var(--u)) #fff, 0 0 calc(2 * var(--u)) rgba(150,220,255,.8); }
+.bubble.k-ice::before { content: ''; position: absolute; inset: 0; border-radius: 50%; z-index: 4; pointer-events: none;
+  background: repeating-linear-gradient(60deg, transparent 0 12%, rgba(255,255,255,.35) 12% 13%), repeating-linear-gradient(-60deg, transparent 0 15%, rgba(255,255,255,.3) 15% 16%); }
+.bubble.k-algae { border: calc(1 * var(--u)) solid #3aa860; box-shadow: 0 0 0 calc(.5 * var(--u)) #1f7a3a, inset 0 0 calc(3 * var(--u)) rgba(60,170,90,.7); background: radial-gradient(circle, rgba(120,200,120,.15), rgba(40,140,70,.45)); }
+.bubble.k-algae::before { content: ''; position: absolute; inset: -6%; border-radius: 50%; z-index: 4; pointer-events: none;
+  background: repeating-conic-gradient(from 0deg, #2f9a52 0 4deg, transparent 4deg 14deg);
+  -webkit-mask: radial-gradient(circle, transparent 60%, #000 62%, #000 72%, transparent 74%); mask: radial-gradient(circle, transparent 60%, #000 62%, #000 72%, transparent 74%); }
+.bubble.k-pearl { background: radial-gradient(circle at 32% 28%, #fff 0 8%, #f6f0ff 25%, #e2d8f2 55%, #c4b6dc 85%, #a99cc6 100%); border-color: #fff; box-shadow: inset 0 0 calc(3 * var(--u)) rgba(255,255,255,.9), 0 calc(1 * var(--u)) calc(2 * var(--u)) rgba(60,40,100,.3); }
+.bubble.k-pearl .cr { opacity: 0; }
+.bubble.k-pearl::after { background: rgba(255,255,255,.75); width: 26%; height: 14%; }
+.bubble.unlock { animation: unlockpop .5s ease-out; }
+@keyframes unlockpop { 40% { transform: var(--t, none) scale(1.08); filter: brightness(1.4); } }
+.sp-demo { display: flex; justify-content: center; gap: calc(4 * var(--u)); margin: calc(3 * var(--u)) 0 calc(1 * var(--u)); }
+.sp-demo .bubble { position: relative; width: calc(26 * var(--u)); height: calc(26 * var(--u)); transform: none !important; }
+.sp-demo .bubble .bx { font-size: calc(7 * var(--u)); }
