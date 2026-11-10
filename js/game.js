@@ -1,7 +1,7 @@
 // Blubberbucht – Spiellogik
 'use strict';
 
-const APP_VERSION = '1.25.3'; // nicht von Hand ändern: tools/release.sh <version>
+const APP_VERSION = '1.25.4'; // nicht von Hand ändern: tools/release.sh <version>
 const TRAY = 6, BOWLS = 4, BOWL_PRICE = 650, BOOSTER_PRICE = 200;
 const SAVE_KEY = 'blubberbucht-v1';
 const $ = s => document.querySelector(s);
@@ -516,7 +516,8 @@ function renderHUD() {
     tm.classList.toggle('low', t <= 10);
   }
 }
-function render() { renderBowls(); renderTray(); renderBoard(); renderHUD(); }
+// Reihenfolge wichtig: erst alles um das Spielfeld herum befüllen (Kopfzeile kann höher werden), dann das Spielfeld vermessen
+function render() { renderHUD(); renderBowls(); renderTray(); renderBoard(); }
 
 // ---------- Flug-Animationen (FLIP) ----------
 const flying = new Map();
@@ -1564,6 +1565,16 @@ function init() {
   });
   let rt;
   window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(onResize, 150); });
+  // Ändert sich die Spielfeldgröße (z. B. Schrift nachgeladen, Label in der Kopfzeile), sofort anpassen – nicht erst beim ersten Antippen
+  if (window.ResizeObserver) {
+    let lastSize = '';
+    new ResizeObserver(() => {
+      const b = $('#board'), size = b.clientWidth + 'x' + b.clientHeight;
+      if (size === lastSize) return;
+      lastSize = size;
+      if (G && !$('#screen-game').hidden && !window.SIM) renderBoard();
+    }).observe($('#board'));
+  }
   window.addEventListener('orientationchange', () => { clearTimeout(rt); rt = setTimeout(onResize, 350); });
   document.addEventListener('pointerdown', () => Sfx.unlock(), { once: true });
   openMenu();
