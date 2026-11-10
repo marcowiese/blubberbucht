@@ -596,3 +596,20 @@ body.no-anim .bubble, body.no-anim .bubble .cr { transition: none !important; }
 .scan-frame { position: absolute; inset: 18%; border: 3px solid #fff36b; border-radius: calc(3 * var(--u)); box-shadow: 0 0 0 200vmax rgba(0,0,0,.35); }
 .xfer-more { margin-top: calc(3 * var(--u)); text-align: left; }
 .xfer-more summary { font-weight: 600; font-size: calc(3.8 * var(--u)); cursor: pointer; color: #1b5fb5; }
+
+/* ---------- Aquarien-Leiste kompakter: weniger Abstand, größere Karten und Tiere ---------- */
+.shelf { padding: 0 calc(1.2 * var(--u)); }
+.shelf .bowls { gap: calc(.6 * var(--u)); }
+.shelf .bowl-fish { left: 8%; right: 8%; bottom: 12%; height: 60%; }
+.shelf .bowl-fish .cr { width: 42%; margin: 0 -4%; }
+.shelf .cards { gap: calc(.8 * var(--u)); margin-top: calc(-.6 * var(--u)); }
+.shelf .card { width: calc(100% - 1.2 * var(--u)); height: calc(14.5 * var(--u)); border-width: calc(.8 * var(--u)); }
+.shelf .card .cr-img { width: 90%; height: 90%; margin-top: calc(-2 * var(--u)); }
+.shelf .card b { font-size: calc(4.6 * var(--u)); right: calc(.8 * var(--u)); bottom: calc(-.6 * var(--u)); }
+.shelf .card .stack { font-size: calc(3.2 * var(--u)); }
+.shelf .card .price { font-size: calc(4.6 * var(--u)); }
+.shelf .card .price .coin { width: calc(5.4 * var(--u)); height: calc(5.4 * var(--u)); }
+.shelf .card .check { font-size: calc(8 * var(--u)); }
+@media (orientation: portrait) and (max-width: 599px) {
+  .shelf .card { height: calc(13.5 * var(--u)); }
+}
