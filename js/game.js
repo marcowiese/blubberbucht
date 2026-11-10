@@ -1,7 +1,7 @@
 // Blubberbucht – Spiellogik
 'use strict';
 
-const APP_VERSION = '1.24.1'; // nicht von Hand ändern: tools/release.sh <version>
+const APP_VERSION = '1.24.2'; // nicht von Hand ändern: tools/release.sh <version>
 const TRAY = 6, BOWLS = 4, BOWL_PRICE = 650, BOOSTER_PRICE = 200;
 const SAVE_KEY = 'blubberbucht-v1';
 const $ = s => document.querySelector(s);
@@ -401,7 +401,7 @@ function applyPositions() {
     const hidden = b.y + b.r < 1.5;
     el.style.display = hidden ? 'none' : '';
     if (hidden) continue;
-    el.style.transform = `translate3d(${((b.x - b.r) * s).toFixed(1)}px, ${((b.y - b.r) * s).toFixed(1)}px, 0)`;
+    el.style.transform = `translate(${((b.x - b.r) * s).toFixed(1)}px, ${((b.y - b.r) * s).toFixed(1)}px)`;
     el.classList.toggle('peek', isBlocked(b));
   }
 }
@@ -511,6 +511,16 @@ function onResize() {
   void document.body.offsetWidth;
   requestAnimationFrame(() => requestAnimationFrame(() => document.body.classList.remove('no-anim')));
   setTimeout(tutRender, 60);
+}
+// Mobile Browser bauen beim ersten Flug-Klon ihre Grafik-Ebenen um – dabei blitzen abgedunkelte Blasen kurz hell auf.
+// Deshalb gleich beim Levelstart einen unsichtbaren Mini-Flug abspielen, damit das vor dem ersten Antippen passiert.
+function prewarmLayers() {
+  const d = document.createElement('div');
+  d.className = 'cr flying';
+  Object.assign(d.style, { left: '-40px', top: '-40px', width: '20px', height: '20px', opacity: '0' });
+  fx().appendChild(d);
+  const a = d.animate([{ transform: 'translate(0,0) scale(1)' }, { transform: 'translate(10px,10px) scale(1.2)' }], { duration: 300 });
+  a.onfinish = () => d.remove();
 }
 function clearFx() {
   flying.forEach(f => f.anim.cancel()); flying.clear();
@@ -803,6 +813,7 @@ function startLevel(L) {
     settle();
     $('#stage').innerHTML = '';
     render();
+    prewarmLayers();
     physWake();
     startTimer();
     if (L === 1 && !save.tutorialDone) setTimeout(tutStart, 1800);

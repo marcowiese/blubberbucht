@@ -654,3 +654,6 @@ html.android .screen { padding-bottom: max(env(safe-area-inset-bottom), 12px); }
 @media (display-mode: standalone) {
   html.android .screen { padding-bottom: max(env(safe-area-inset-bottom), 44px); }
 }
+/* Blasen bleiben eine flache Ebene (kein eigener Grafik-Layer pro Blase) */
+.bubble { backface-visibility: visible; transform-style: flat; }
+#fx { contain: strict; }
