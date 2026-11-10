@@ -1,7 +1,7 @@
 // Blubberbucht – Spiellogik
 'use strict';
 
-const APP_VERSION = '1.25.2'; // nicht von Hand ändern: tools/release.sh <version>
+const APP_VERSION = '1.25.3'; // nicht von Hand ändern: tools/release.sh <version>
 const TRAY = 6, BOWLS = 4, BOWL_PRICE = 650, BOOSTER_PRICE = 200;
 const SAVE_KEY = 'blubberbucht-v1';
 const $ = s => document.querySelector(s);
@@ -480,7 +480,8 @@ function applyPositions() {
     const hidden = b.y + b.r < 1.5;
     el.style.display = hidden ? 'none' : '';
     if (hidden) continue;
-    el.style.transform = `translate3d(${((b.x - b.r) * s).toFixed(2)}px, ${((b.y - b.r) * s).toFixed(2)}px, 0)`;
+    // auf ganze Pixel gerundet – sonst springen Blasen beim Umbau der Grafik-Ebenen um Bruchteile eines Pixels
+    el.style.transform = `translate3d(${Math.round((b.x - b.r) * s)}px, ${Math.round((b.y - b.r) * s)}px, 0)`;
     el.classList.toggle('peek', isBlocked(b));
   }
 }

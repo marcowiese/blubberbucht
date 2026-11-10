@@ -670,3 +670,6 @@ html.android { --sb: max(env(safe-area-inset-bottom, 0px), 12px); }
 @media (display-mode: standalone) { html.android { --sb: max(env(safe-area-inset-bottom, 0px), 44px); } }
 .menu-version { bottom: calc(var(--sb) + 1 * var(--u)); z-index: 5; }
 .panel .version[data-devtap] { cursor: default; padding: calc(1.5 * var(--u)) 0; }
+/* Jede Blase von Anfang an als feste Grafik-Ebene – beim ersten Antippen muss nichts umgeordnet werden (kein Zucken) */
+.bubble { will-change: transform; }
+#stage { transform: translateZ(0); }
