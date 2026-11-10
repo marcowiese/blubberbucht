@@ -64,7 +64,7 @@ const Sfx = (() => {
 
   // ---------- Musik: die 4 Tracks nacheinander, danach wieder von vorne ----------
   // Reihenfolge der Playlist – nach dem letzten Titel geht es wieder von vorne los
-  const TRACKS = ['music/01-bubble-fish.mp3', 'music/02-crystal-bubbles.mp3', 'music/03-coral-garden.mp3', 'music/04-moonlit-aquarium.mp3'];
+  const TRACKS = ['music/01-bubble-fish.mp3', 'music/02-crystal-bubbles.mp3', 'music/03-coral-garden.mp3', 'music/04-moonlit-aquarium.mp3', 'music/05-deep-blue-drift.mp3'];
   let musicOn = false, track = 0, player = null;
   function getPlayer() {
     if (!player) {
