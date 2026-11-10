@@ -1,7 +1,7 @@
 // Blubberbucht – Spiellogik
 'use strict';
 
-const APP_VERSION = '1.24.2'; // nicht von Hand ändern: tools/release.sh <version>
+const APP_VERSION = '1.24.3'; // nicht von Hand ändern: tools/release.sh <version>
 const TRAY = 6, BOWLS = 4, BOWL_PRICE = 650, BOOSTER_PRICE = 200;
 const SAVE_KEY = 'blubberbucht-v1';
 const $ = s => document.querySelector(s);
@@ -227,13 +227,13 @@ function physFrame(now) {
   else { G.bubbles.forEach(b => { b.sleep = true; b.vx = 0; b.vy = 0; }); applyPositions(); }
 }
 function physStep(dt) {
-  const B = G.bubbles, H = G.H, n = B.length, drag = Math.exp(-2.4 * dt), e = .18;
+  const B = G.bubbles, H = G.H, n = B.length, drag = Math.exp(-1.5 * dt), e = .26;
   const now = performance.now();
   for (const b of B) {
     b.support = false;
     if (b.sleep || b.hold > now) continue;          // noch nicht losgelassen
     b.vx = (b.vx || 0) * drag;
-    b.vy = ((b.vy || 0) + 240 * dt) * drag;                 // Schwerkraft (im Wasser gebremst)
+    b.vy = ((b.vy || 0) + 320 * dt) * drag;                 // Schwerkraft (im Wasser gebremst)
     b.x += b.vx * dt; b.y += b.vy * dt;
   }
   for (let pass = 0; pass < 3; pass++) {
@@ -265,7 +265,7 @@ function physStep(dt) {
         }
         const rv = ((b.vx || 0) - (a.vx || 0)) * nx + ((b.vy || 0) - (a.vy || 0)) * ny;
         if (rv < 0) {
-          const imp = -(1 + (rv < -25 ? e : 0)) * rv / w;   // nur bei kräftigem Aufprall leicht federn
+          const imp = -(1 + (rv < -20 ? e : 0)) * rv / w;   // nur bei kräftigem Aufprall leicht federn
           a.vx -= imp * nx * wa; a.vy -= imp * ny * wa; b.vx += imp * nx * wb; b.vy += imp * ny * wb;
         }
       }
@@ -401,7 +401,7 @@ function applyPositions() {
     const hidden = b.y + b.r < 1.5;
     el.style.display = hidden ? 'none' : '';
     if (hidden) continue;
-    el.style.transform = `translate(${((b.x - b.r) * s).toFixed(1)}px, ${((b.y - b.r) * s).toFixed(1)}px)`;
+    el.style.transform = `translate3d(${((b.x - b.r) * s).toFixed(2)}px, ${((b.y - b.r) * s).toFixed(2)}px, 0)`;
     el.classList.toggle('peek', isBlocked(b));
   }
 }
