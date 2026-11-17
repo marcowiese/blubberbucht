@@ -1,8 +1,8 @@
 // Blubberbucht – Spiellogik
 'use strict';
 
-const APP_VERSION = '1.25.8'; // nicht von Hand ändern: tools/release.sh <version>
-const TRAY = 6, BOWLS = 4, BOWL_PRICE = 650, BOOSTER_PRICE = 200;
+const APP_VERSION = '1.25.9'; // nicht von Hand ändern: tools/release.sh <version>
+const TRAY = 6, BOWLS = 4, BOWL_PRICE = 500, BOOSTER_PRICE = 200;
 const SAVE_KEY = 'blubberbucht-v1';
 const $ = s => document.querySelector(s);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
