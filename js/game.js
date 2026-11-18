@@ -1,7 +1,7 @@
 // Blubberbucht – Spiellogik
 'use strict';
 
-const APP_VERSION = '1.25.9'; // nicht von Hand ändern: tools/release.sh <version>
+const APP_VERSION = '1.26.0'; // nicht von Hand ändern: tools/release.sh <version>
 const TRAY = 6, BOWLS = 4, BOWL_PRICE = 500, BOOSTER_PRICE = 200;
 const SAVE_KEY = 'blubberbucht-v1';
 const $ = s => document.querySelector(s);
@@ -10,7 +10,7 @@ const rand = n => Math.floor(Math.random() * n);
 const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = rand(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 
 // ---------- Speicherstand ----------
-const DEFAULTS = { level: 1, boosters: { net: 1, brush: 1, shuffle: 1 }, caught: {}, aquarium: [], sound: true, music: true, vib: true, seen: 3, coins: 100, stars: {}, tutorialDone: false, daily: { last: '', streak: 0 }, specialsSeen: {} };
+const DEFAULTS = { level: 1, boosters: { net: 1, brush: 1, shuffle: 1 }, caught: {}, aquarium: [], sound: true, music: true, vib: true, seen: 3, coins: 100, stars: {}, tutorialDone: false, daily: { last: '', streak: 0 }, specialsSeen: {}, advent: { year: 0, opened: [] }, adventShown: '' };
 let save = loadSave();
 function loadSave() {
   try {
@@ -1248,6 +1248,9 @@ function openDev(back) {
     </div>
     ${inGame ? `<div class="devrow two"><button class="btn green" data-act="win">Level gewinnen</button><button class="btn orange" data-act="lose">Level verlieren</button></div>
       <button class="btn blue" data-act="bowls">Alle Aquarien öffnen</button>` : ''}
+    ${xmasOn() ? `<div class="devrow"><label>Advent</label><input id="dev-advent" type="number" min="0" max="31" value="${devAdventDay || adventDay()}" inputmode="numeric">
+      <button class="btn blue" data-act="advent">Tag setzen</button></div>
+      <button class="btn ghost" data-act="adventreset">Adventskalender zurücksetzen</button>` : ''}
     <div class="devrow two"><button class="btn ghost" data-act="tut">Tutorial zurücksetzen</button><button class="btn ghost" data-act="daily">Tagesbonus zurücksetzen</button></div>
     <button class="btn ghost" data-act="back">Zurück</button>
     <button class="btn link" data-act="off">Entwicklermodus ausschalten</button>`, {
@@ -1269,6 +1272,8 @@ function openDev(back) {
     bowls: () => { hideModal(); commit(() => { G.bowls.forEach(w => w.locked = false); settle(); }); afterChange(); },
     tut: () => { save.tutorialDone = false; persist(); toast('Tutorial startet beim nächsten Level 1'); },
     daily: () => { save.daily = { last: '', streak: 0 }; persist(); toast('Tagesbonus kommt beim nächsten Menü-Aufruf'); },
+    advent: () => { devAdventDay = clamp(parseInt($('#dev-advent').value) || 0, 0, 31); renderAdventBtn(); toast(devAdventDay ? `Simuliert: ${devAdventDay}. Dezember (bis zum Neuladen)` : 'Echtes Datum'); },
+    adventreset: () => { save.advent = { year: new Date().getFullYear(), opened: [] }; save.adventShown = ''; persist(); renderAdventBtn(); toast('Adventskalender zurückgesetzt'); },
     off: () => { save.dev = false; persist(); hideModal(); toast('Entwicklermodus aus'); },
   });
 }
@@ -1441,6 +1446,7 @@ function openMenu() {
   $('#menu-level').textContent = `Level ${save.level}`;
   renderCoins();
   showScreen('menu');
+  renderAdventBtn();
   setTimeout(checkDaily, 500);
 }
 
@@ -1453,7 +1459,7 @@ function checkDaily() {
   if (!$('#screen-menu') || $('#screen-menu').hidden || !$('#modal').hidden) return;
   const today = dayStr();
   const d = save.daily || { last: '', streak: 0 };
-  if (d.last === today) return;
+  if (d.last === today) { maybeAdvent(); return; }
   const y = new Date(); y.setDate(y.getDate() - 1);
   const day = d.last === dayStr(y) ? (d.streak % 7) + 1 : 1;   // 1..7
   const tile = (r, i) => {
@@ -1476,8 +1482,94 @@ function checkDaily() {
       save.daily = { last: today, streak: day };
       persist(); renderCoins(); hideModal(); Sfx.match(); confetti();
       toast(got.join(' · '));
+      setTimeout(maybeAdvent, 1400);
     },
   });
+}
+
+// ---------- Adventskalender (nur mit Weihnachts-Theme, js/xmas.js) ----------
+// 1.–24. Dezember je ein Türchen. Verpasste Türchen lassen sich im Dezember nachholen.
+// Belohnungen bewusst klein (zusammen knapp 600 Münzen + 4 Booster), damit Münzen knapp bleiben.
+const ADVENT = [
+  { coins: 15 }, { coins: 20 }, { coins: 15 }, { coins: 25 }, { coins: 20 }, { coins: 30, booster: 1 },   // 6.: Nikolaus
+  { coins: 20 }, { coins: 15 }, { coins: 25 }, { coins: 20 }, { coins: 15 }, { coins: 30 },
+  { booster: 1 }, { coins: 20 }, { coins: 25 }, { coins: 15 }, { coins: 20 }, { coins: 30 },
+  { coins: 25 }, { booster: 1 }, { coins: 20 }, { coins: 25 }, { coins: 30 }, { coins: 120, booster: 1 },  // 24.: Heiligabend
+];
+const ADVENT_ORDER = [7, 15, 2, 21, 11, 18, 4, 13, 24, 9, 1, 20, 16, 6, 23, 3, 12, 19, 8, 14, 22, 5, 17, 10];
+let devAdventDay = 0;                               // Entwicklermodus: simulierter Dezembertag
+const xmasOn = () => typeof XMAS !== 'undefined' && XMAS;
+function adventDay() {                              // 1..31 im Dezember, sonst 0
+  if (devAdventDay) return devAdventDay;
+  const d = new Date();
+  return d.getMonth() === 11 ? d.getDate() : 0;
+}
+function adventState() {
+  const y = new Date().getFullYear();
+  if (!save.advent || save.advent.year !== y) save.advent = { year: y, opened: [] };
+  return save.advent;
+}
+function adventReady() {                            // Anzahl Türchen, die man gerade öffnen darf
+  const d = adventDay(), st = adventState();
+  let n = 0;
+  for (let k = 1; k <= Math.min(d, 24); k++) if (!st.opened.includes(k)) n++;
+  return n;
+}
+function renderAdventBtn() {
+  const b = $('#btn-advent'); if (!b) return;
+  b.hidden = !xmasOn();
+  const n = xmasOn() ? adventReady() : 0;
+  b.querySelector('.abadge').textContent = n || '';
+  b.classList.toggle('has', n > 0);
+}
+const adventWhat = r => [r.coins ? `${COIN}<b>${r.coins}</b>` : '', r.booster ? '<span class="dbooster">🎁</span>' : ''].join('');
+function maybeAdvent() {
+  if (!xmasOn() || !$('#modal').hidden || $('#screen-menu').hidden) return;
+  const d = adventDay(), today = dayStr();
+  if (!d || d > 24 || adventState().opened.includes(d) || save.adventShown === today) return;
+  save.adventShown = today; persist();
+  openAdvent();
+}
+function adventInfo() {
+  const d = adventDay(), st = adventState();
+  const missed = Math.max(0, adventReady() - (d >= 1 && d <= 24 && !st.opened.includes(d) ? 1 : 0));
+  return !d ? 'Ab dem 1. Dezember öffnet sich jeden Tag ein Türchen.'
+    : d > 24 ? (adventReady() ? 'Frohe Weihnachten! Übrige Türchen kannst du noch bis Silvester öffnen.' : 'Frohe Weihnachten! Du hast alle Türchen geöffnet. 🎁')
+    : !st.opened.includes(d) ? `Heute ist der ${d}. Dezember – öffne dein Türchen!${missed ? ' Verpasste Türchen kannst du nachholen.' : ''}`
+    : missed ? 'Verpasste Türchen kannst du noch nachholen.' : d === 24 ? 'Frohe Weihnachten! 🎁' : 'Morgen wartet das nächste Türchen.';
+}
+function openAdvent() {
+  const d = adventDay(), st = adventState(), last = Math.min(d, 24);
+  const door = n => {
+    const open = st.opened.includes(n), ready = !open && n <= last;
+    return `<button class="adoor c${n % 4} ${open ? 'open' : ''} ${ready ? 'ready' : ''} ${n === d && ready ? 'today' : ''} ${n === 24 ? 'big' : ''}" data-door="${n}">`
+      + (open ? `<span class="aw">${adventWhat(ADVENT[n - 1])}</span>` : `<b>${n}</b>`) + '</button>';
+  };
+  showModal(`<div class="ribbon xred">🎄 Adventskalender</div>
+    <p class="ainfo">${adventInfo()}</p>
+    <div class="advent">${ADVENT_ORDER.map(door).join('')}</div>
+    <button class="btn ghost" data-act="close">Schließen</button>`, { close: () => { hideModal(); renderAdventBtn(); } });
+  $('#modal .advent').addEventListener('click', e => {
+    const b = e.target.closest('.adoor'); if (!b || b.classList.contains('open')) return;
+    if (!b.classList.contains('ready')) { Sfx.error(); shake(b); toast(d ? `Türchen ${b.dataset.door} öffnet sich am ${b.dataset.door}. Dezember` : 'Der Adventskalender beginnt am 1. Dezember'); return; }
+    openDoor(+b.dataset.door, b);
+  });
+}
+function openDoor(n, el) {
+  const st = adventState();
+  if (st.opened.includes(n)) return;
+  const r = ADVENT[n - 1], got = [];
+  if (r.coins) { save.coins += r.coins; got.push(`+${r.coins} Münzen`); }
+  if (r.booster) {
+    const k = ['net', 'brush', 'shuffle'][rand(3)];
+    save.boosters[k] = (save.boosters[k] || 0) + 1; got.push(`+1 ${BOOSTER_INFO[k].name}`);
+  }
+  st.opened.push(n); persist(); renderCoins(); vib(20);
+  el.classList.remove('ready', 'today'); el.classList.add('open', 'opening');
+  el.innerHTML = `<span class="aw">${adventWhat(r)}</span>`;
+  Sfx.match(); if (n === 24) confetti();
+  toast(`Türchen ${n}: ${got.join(' · ')}`);
+  const p = $('#modal .ainfo'); if (p) p.textContent = adventInfo();
 }
 function openAquarium() {
   clearInterval(timerId);
@@ -1551,6 +1643,7 @@ function init() {
     startLevel(save.level);
   });
   $('#btn-aqua').addEventListener('click', () => { Sfx.click(); openAquarium(); });
+  $('#btn-advent').addEventListener('click', () => { Sfx.unlock(); Sfx.click(); openAdvent(); });
   $('#btn-map').addEventListener('click', () => { Sfx.unlock(); Sfx.click(); openMap(); });
   $('#btn-map-back').addEventListener('click', () => { Sfx.click(); openMenu(); });
   $('#map').addEventListener('click', async e => {

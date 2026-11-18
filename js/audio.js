@@ -131,6 +131,32 @@ const Sfx = (() => {
       o.connect(g).connect(out); o.start(t); o.stop(t + d + .05);
     }
   }
+  // Weihnachten: Glocke (unharmonische Teiltöne, langer Ausklang)
+  function bell(m, delay, vol = .06, dur = 1.6, rev = .5) {
+    if (!enabled) return;
+    const a = ac(); if (!a) return;
+    const t = a.currentTime + delay, f = hz(m);
+    const out = a.createGain(), send = a.createGain(); send.gain.value = rev;
+    out.connect(sfxBus); out.connect(send); send.connect(reverb);
+    for (const [mul, v, d] of [[1, 1, 1], [2, .5, .75], [2.4, .35, .55], [3, .25, .45], [4.2, .16, .3], [5.4, .1, .2]]) {
+      const o = a.createOscillator(), g = a.createGain();
+      o.type = 'sine'; o.frequency.value = f * mul;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol * v, t + .004);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur * d);
+      o.connect(g).connect(out); o.start(t); o.stop(t + dur * d + .05);
+    }
+  }
+  // Weihnachten: Schlittenglöckchen – ein „Schütteln“ aus vielen winzigen, hellen Klingeltönen
+  function sleigh(delay, vol = .03, n = 7) {
+    if (!enabled) return;
+    for (let i = 0; i < n; i++) {
+      const d = delay + i * .022 + Math.random() * .012, f = 5200 + Math.random() * 2600;
+      sweep(f, f * 1.01, .09 + Math.random() * .05, { vol: vol * (1 - i / (n * 1.6)), delay: d, attack: .002 });
+    }
+    noise(.08, { f1: 9000, f2: 7000, q: .8, type: 'highpass', vol: vol * .7, delay });
+  }
+  const XM = typeof XMAS !== 'undefined' && XMAS;
   // weicher Bass darunter
   function bass(m, delay, vol = .09, dur = .5) {
     if (!enabled) return;
@@ -170,7 +196,7 @@ const Sfx = (() => {
       sweep(390, 820, .07, { vol: .06, delay: .26 });
     },
     burst() { noise(.06, { f1: 4000, f2: 1500, q: .8, vol: .08 }); blub(900, .01, .08); },
-    match() { [72, 76, 79, 84].forEach((m, i) => sweep(hz(m), hz(m) * 1.002, .5, { type: 'sine', vol: .1, delay: i * .08, attack: .01 })); [.0, .08].forEach(d => blub(1000 + Math.random() * 500, d + .3, .05)); },
+    match() { [72, 76, 79, 84].forEach((m, i) => sweep(hz(m), hz(m) * 1.002, .5, { type: 'sine', vol: .1, delay: i * .08, attack: .01 })); [.0, .08].forEach(d => blub(1000 + Math.random() * 500, d + .3, .05)); if (XM) { bell(96, .3, .035, 1.1); sleigh(.05, .018, 5); } },
     // Gewinn: aufsteigende, glockige Dur-Septnonen-Figur mit Hall, warme Fläche und ein paar Bläschen
     // Gewinn: kurzer, freundlicher Jingle – hüpfende Mallet-Melodie mit Bass, Glitzer-Abschluss und Hall
     win() {
@@ -181,6 +207,11 @@ const Sfx = (() => {
       [[84, 0], [88, .03], [91, .06]].forEach(([m, d]) => mallet(m, 8 * b + d, .08, 1.3, .55));
       [96, 100, 103].forEach((m, i) => mallet(m, 8 * b + .12 + i * .06, .025, .5, .7));
       [.1, .45, 1.1].forEach(d => blub(1100 + Math.random() * 700, d, .03, .06));
+      if (XM) {   // Schlittenglöckchen im Takt und eine Glocke auf dem Schlussakkord
+        [0, 2, 4, 6].forEach(k => sleigh(k * b, .022, 6));
+        sleigh(8 * b, .03, 9); sleigh(8 * b + .26, .02, 7);
+        bell(84, 8 * b, .05, 2.2, .6); bell(91, 8 * b + .05, .03, 1.8, .6);
+      }
     },
     // Verloren: sanft absteigend statt „Fehler-Tröte“
     lose() { [71, 67, 64, 62].forEach((m, i) => chime(m, i * .16, .07, 1.3, .3)); swell([50, 57, 62], .3, .02, 1.8); },

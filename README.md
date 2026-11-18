@@ -30,6 +30,11 @@ Ein entspanntes Unterwasser-Sortierpuzzle für Smartphone und Tablet – direkt 
 
 Technik: reines HTML/CSS/JavaScript, keine Abhängigkeiten.
 
+## Weihnachts-Theme
+- Schalter: `const XMAS = true` in `js/xmas.js` (auf `false` setzen = wieder normales Theme).
+- Schnee, Tannengrün mit Kugeln, Lichterkette am Regal, Mützen für alle Tiere (König Krabbo behält seine Krone), Glöckchen-Klänge.
+- Adventskalender: 1.–24. Dezember je ein Türchen (knapp 600 Münzen + 4 Booster insgesamt), verpasste Türchen im Dezember nachholbar. Im Entwicklermodus lässt sich ein Dezembertag simulieren.
+
 ## Neue Version veröffentlichen
 ```bash
 tools/release.sh 1.6.1   # setzt Versionsnummer überall
