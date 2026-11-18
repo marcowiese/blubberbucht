@@ -1,7 +1,7 @@
 // Blubberbucht – Spiellogik
 'use strict';
 
-const APP_VERSION = '1.27.0'; // nicht von Hand ändern: tools/release.sh <version>
+const APP_VERSION = '1.27.1'; // nicht von Hand ändern: tools/release.sh <version>
 const TRAY = 6, BOWLS = 4, BOWL_PRICE = 500, BOOSTER_PRICE = 200;
 const SAVE_KEY = 'blubberbucht-v1';
 const $ = s => document.querySelector(s);
@@ -1095,7 +1095,7 @@ function openSettings() {
     ${inGame ? `<button class="btn blue" data-act="tutorial">❓ Anleitung zeigen</button><button class="btn orange" data-act="restart">Level neu starten</button><button class="btn ghost" data-act="menu">Hauptmenü</button>` : ''}
     <button class="btn green" data-act="close">Weiter</button>
     ${inGame ? '' : `<button class="btn blue" data-act="transfer">💾 Spielstand übertragen</button><button class="btn link" data-act="reset">Fortschritt zurücksetzen</button>`}
-    <p class="version" data-devtap>Blubberbucht v${APP_VERSION} · von Hase Games</p>`, {
+    <p class="version" data-devtap>Blubberbucht v${APP_VERSION} · von BunnyLabs</p>`, {
     close: hideModal,
     restart: () => startLevel(G.level),
     tutorial: () => { hideModal(); tutStart(); },

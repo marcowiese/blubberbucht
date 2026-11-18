@@ -1,6 +1,6 @@
 # Blubberbucht 🐠
 
-*von Hase Games*
+*von BunnyLabs*
 
 Ein entspanntes Unterwasser-Sortierpuzzle für Smartphone und Tablet – direkt im Browser, offline-fähig und als App auf dem Homescreen installierbar.
 
@@ -24,7 +24,7 @@ Ein entspanntes Unterwasser-Sortierpuzzle für Smartphone und Tablet – direkt 
 ## Weiteres
 - Endlose, automatisch erzeugte Level mit steigender Schwierigkeit, Zeit-Challenges in jedem 6. Level
 - 16 Arten zum Entdecken, eigenes Aquarium mit allen gesammelten Tieren
-- Grafiken und Soundeffekte werden im Code erzeugt; Musik: eigene Tracks © Hase Games (Bubble Fish, Crystal Bubbles, Coral Garden, Moonlit Aquarium, Deep Blue Drift; Weihnachten: Schneeflocken-Bucht, Lichterglanz im Riff, Stille Nacht am Meeresgrund, Kekse und Korallen)
+- Grafiken und Soundeffekte werden im Code erzeugt; Musik: eigene Tracks © BunnyLabs (Bubble Fish, Crystal Bubbles, Coral Garden, Moonlit Aquarium, Deep Blue Drift; Weihnachten: Schneeflocken-Bucht, Lichterglanz im Riff, Stille Nacht am Meeresgrund, Kekse und Korallen)
 - Musik und Soundeffekte getrennt ein-/ausschaltbar
 - Fortschritt wird lokal im Browser gespeichert
 

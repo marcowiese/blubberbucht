@@ -355,7 +355,7 @@ async function postcardBlob(pc) {
   x.font = '700 64px Fredoka, ui-rounded, system-ui, sans-serif';
   x.fillText(pc.title, PAD, H + PAD + 92);
   x.font = '500 38px Fredoka, ui-rounded, system-ui, sans-serif'; x.fillStyle = '#8a7350';
-  x.fillText(`Blubberbucht · erobert in Level ${pc.level} · Hase Games`, PAD, H + PAD + 150);
+  x.fillText(`Blubberbucht · erobert in Level ${pc.level} · BunnyLabs`, PAD, H + PAD + 150);
   return new Promise(r => c.toBlob(r, 'image/png'));
 }
 async function savePostcard(pc) {
