@@ -64,7 +64,10 @@ const Sfx = (() => {
 
   // ---------- Musik: die 4 Tracks nacheinander, danach wieder von vorne ----------
   // Reihenfolge der Playlist – nach dem letzten Titel geht es wieder von vorne los
-  const TRACKS = ['music/01-bubble-fish.mp3', 'music/02-crystal-bubbles.mp3', 'music/03-coral-garden.mp3', 'music/04-moonlit-aquarium.mp3', 'music/05-deep-blue-drift.mp3'];
+  const NORMAL_TRACKS = ['music/01-bubble-fish.mp3', 'music/02-crystal-bubbles.mp3', 'music/03-coral-garden.mp3', 'music/04-moonlit-aquarium.mp3', 'music/05-deep-blue-drift.mp3'];
+  // Weihnachts-Theme (js/xmas.js): eigene Weihnachts-Playlist statt der normalen
+  const XMAS_TRACKS = ['music/x1-schneeflocken-bucht.mp3', 'music/x2-lichterglanz-im-riff.mp3', 'music/x3-stille-nacht-am-meeresgrund.mp3', 'music/x4-kekse-und-korallen.mp3'];
+  const TRACKS = typeof XMAS !== 'undefined' && XMAS ? XMAS_TRACKS : NORMAL_TRACKS;
   let musicOn = false, track = 0, player = null;
   function getPlayer() {
     if (!player) {

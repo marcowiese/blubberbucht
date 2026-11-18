@@ -24,7 +24,7 @@ Ein entspanntes Unterwasser-Sortierpuzzle für Smartphone und Tablet – direkt 
 ## Weiteres
 - Endlose, automatisch erzeugte Level mit steigender Schwierigkeit, Zeit-Challenges in jedem 6. Level
 - 16 Arten zum Entdecken, eigenes Aquarium mit allen gesammelten Tieren
-- Grafiken und Soundeffekte werden im Code erzeugt; Musik: 4 eigene Tracks © Hase Games (Bubble Fish, Crystal Bubbles, Coral Garden, Moonlit Aquarium)
+- Grafiken und Soundeffekte werden im Code erzeugt; Musik: eigene Tracks © Hase Games (Bubble Fish, Crystal Bubbles, Coral Garden, Moonlit Aquarium, Deep Blue Drift; Weihnachten: Schneeflocken-Bucht, Lichterglanz im Riff, Stille Nacht am Meeresgrund, Kekse und Korallen)
 - Musik und Soundeffekte getrennt ein-/ausschaltbar
 - Fortschritt wird lokal im Browser gespeichert
 
@@ -32,7 +32,7 @@ Technik: reines HTML/CSS/JavaScript, keine Abhängigkeiten.
 
 ## Weihnachts-Theme
 - Schalter: `const XMAS = true` in `js/xmas.js` (auf `false` setzen = wieder normales Theme).
-- Schnee, Tannengrün mit Kugeln, Lichterkette am Regal, Mützen für alle Tiere (König Krabbo behält seine Krone), Glöckchen-Klänge.
+- Schnee, Tannengrün mit Kugeln, Lichterkette am Regal, Mützen für alle Tiere (König Krabbo behält seine Krone), Glöckchen-Klänge, eigene Weihnachts-Playlist (music/x1–x4) statt der normalen Musik.
 - Adventskalender: 1.–24. Dezember je ein Türchen (knapp 600 Münzen + 4 Booster insgesamt), verpasste Türchen im Dezember nachholbar. Im Entwicklermodus lässt sich ein Dezembertag simulieren.
 
 ## Neue Version veröffentlichen
