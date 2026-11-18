@@ -32,7 +32,7 @@ Technik: reines HTML/CSS/JavaScript, keine Abhängigkeiten.
 
 ## Weihnachts-Theme
 - Schalter: `const XMAS = true` in `js/xmas.js` (auf `false` setzen = wieder normales Theme).
-- Schnee, Tannengrün mit Kugeln, Lichterkette am Regal, Mützen für alle Tiere (König Krabbo behält seine Krone), Glöckchen-Klänge, eigene Weihnachts-Playlist (music/x1–x4) statt der normalen Musik.
+- Schnee, Tannengrün mit Kugeln, Lichterkette am Regal, Mützen für alle Tiere (König Krabbo: Krone und kleine schräge Mütze), Glöckchen-Klänge, eigene Weihnachts-Playlist (music/x1–x4) statt der normalen Musik.
 - Adventskalender: 1.–24. Dezember je ein Türchen (knapp 600 Münzen + 4 Booster insgesamt), verpasste Türchen im Dezember nachholbar. Im Entwicklermodus lässt sich ein Dezembertag simulieren.
 
 ## Neue Version veröffentlichen

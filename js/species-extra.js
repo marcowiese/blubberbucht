@@ -144,7 +144,7 @@ function drawRoboFish(s) {
   d += `<path d="M58 46 h14 M58 52 h14" stroke="#5a6a80" stroke-width="1.6" opacity=".6"/>`;
   return d;
 }
-function drawKingCrab(s) { return drawCrab(s) + crown(50, 40, 11) + sparkle(84, 12, 4) + sparkle(16, 12, 3.4); }
+function drawKingCrab(s) { return drawCrab(s) + crown(50, 25, 11) + sparkle(84, 12, 4) + sparkle(16, 12, 3.4); }
 function drawGlitterOcto(s) {
   return drawOctopus(s)
     + `<path d="M62 14 q8 -8 12 0 q-8 6 -12 0z M62 14 q-4 -10 -12 -4 q6 6 12 4z" fill="#ff4b8a" stroke="#a8104a" stroke-width="1.2"/><circle cx="62" cy="14" r="2.4" fill="#ff4b8a" stroke="#a8104a" stroke-width="1"/>`
