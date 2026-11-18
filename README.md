@@ -33,6 +33,7 @@ Technik: reines HTML/CSS/JavaScript, keine Abhängigkeiten.
 ## Weihnachts-Theme
 - Schalter: `const XMAS = true` in `js/xmas.js` (auf `false` setzen = wieder normales Theme).
 - Schnee, Tannengrün mit Kugeln, Lichterkette am Regal, Mützen für alle Tiere (König Krabbo: Krone und kleine schräge Mütze), Glöckchen-Klänge, eigene Weihnachts-Playlist (music/x1–x4) statt der normalen Musik.
+- 7 Weihnachtstiere (Flocke, Renni, Lebi, Tanni, Pingo, Päckchen-Paul, Zuckerli): in jedem Level ersetzt eine davon reihum eine ältere Art (gleiche Artenzahl, gleiche Schwierigkeit). Ohne Theme sind sie unsichtbar; der Fang bleibt gespeichert und ist nächstes Jahr wieder da.
 - Adventskalender: 1.–24. Dezember je ein Türchen (knapp 600 Münzen + 4 Booster insgesamt), verpasste Türchen im Dezember nachholbar. Im Entwicklermodus lässt sich ein Dezembertag simulieren.
 
 ## Neue Version veröffentlichen

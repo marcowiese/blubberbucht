@@ -1,7 +1,7 @@
 // Blubberbucht – Spiellogik
 'use strict';
 
-const APP_VERSION = '1.26.4'; // nicht von Hand ändern: tools/release.sh <version>
+const APP_VERSION = '1.27.0'; // nicht von Hand ändern: tools/release.sh <version>
 const TRAY = 6, BOWLS = 4, BOWL_PRICE = 500, BOOSTER_PRICE = 200;
 const SAVE_KEY = 'blubberbucht-v1';
 const $ = s => document.querySelector(s);
@@ -10,7 +10,7 @@ const rand = n => Math.floor(Math.random() * n);
 const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = rand(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 
 // ---------- Speicherstand ----------
-const DEFAULTS = { level: 1, boosters: { net: 1, brush: 1, shuffle: 1 }, caught: {}, aquarium: [], sound: true, music: true, vib: true, seen: 3, coins: 100, stars: {}, tutorialDone: false, daily: { last: '', streak: 0 }, specialsSeen: {}, advent: { year: 0, opened: [] }, adventShown: '' };
+const DEFAULTS = { level: 1, boosters: { net: 1, brush: 1, shuffle: 1 }, caught: {}, aquarium: [], sound: true, music: true, vib: true, seen: 3, coins: 100, stars: {}, tutorialDone: false, daily: { last: '', streak: 0 }, specialsSeen: {}, advent: { year: 0, opened: [] }, adventShown: '', xmasSeen: {} };
 let save = loadSave();
 function loadSave() {
   try {
@@ -81,6 +81,8 @@ function genLevel(L) {
   const unlocked = SPECIES.slice(0, unlockedCount(L)).map(s => s.id);
   const newest = unlocked[unlocked.length - 1];
   const chosen = [newest, ...shuffle(unlocked.filter(s => s !== newest))].slice(0, Math.min(p.S, T));
+  // Weihnachtszeit: eine Weihnachtsart ersetzt eine ältere Art (gleiche Artenzahl -> gleiche Schwierigkeit); reihum je Level
+  if (xmasOn() && chosen.length >= 2) chosen[chosen.length - 1] = XMAS_SPECIES[(L - 1) % XMAS_SPECIES.length].id;
   const list = [];
   for (let t = 0; t < T; t++) { const sp = chosen[t % chosen.length]; list.push(sp, sp, sp); }
   shuffle(list);
@@ -914,6 +916,23 @@ function startLevel(L) {
     physWake();
     startTimer();
     if (L === 1 && !save.tutorialDone) setTimeout(tutStart, 1800);
+    // Weihnachtstier vorstellen – nach einem anderen Hinweis (neue Art, schweres Level …) statt ihn zu ersetzen
+    const xs = xmasOn() && !(L === 1 && !save.tutorialDone) && G.species.map(id => SPECIES_BY_ID[id]).find(sp => sp.xmas && !(save.xmasSeen || {})[sp.id]);
+    if (xs) {
+      const lvl = G;
+      setTimeout(() => {
+        const show = () => {
+          if (G !== lvl) return;
+          save.xmasSeen = { ...(save.xmasSeen || {}), [xs.id]: true }; persist();
+          showModal(`<div class="ribbon xred">🎄 Weihnachtstier!</div>
+            <div class="hero-cr">${creatureSVG(xs.id)}</div>
+            <h2>${xs.name}</h2>
+            <p>${xs.name} schwimmt nur in der Weihnachtszeit mit – fang es, solange es da ist!</p>
+            <button class="btn green" data-act="close">Los geht's!</button>`, { close: hideModal });
+        };
+        if ($('#modal').hidden) show(); else modalAfter = show;
+      }, 2500);
+    }
     const u = unlockedCount(L);
     const kinds = [...new Set(G.bubbles.map(b => b.kind === 'key' ? 'lock' : b.kind).filter(Boolean))];
     const newKind = kinds.find(k => !(save.specialsSeen || {})[k]);
@@ -1047,10 +1066,12 @@ function showModal(html, acts = {}) {
   m.innerHTML = `<div class="panel">${html}</div>`;
   m.hidden = false;
 }
+let modalAfter = null;          // Hinweis, der nach dem Schließen des aktuellen Fensters folgt
 function hideModal() {
   stopScanner();
   $('#modal').hidden = true;
   if (G) G.paused = false;
+  if (modalAfter) { const f = modalAfter; modalAfter = null; setTimeout(f, 350); }
 }
 function toast(msg) {
   const t = $('#toast');
@@ -1262,7 +1283,7 @@ function openDev(back) {
     },
     coins: () => { save.coins = clamp(parseInt($('#dev-coins').value) || 0, 0, 999999); persist(); renderCoins(); toast(`Münzen: ${save.coins}`); },
     boosters: () => { for (const k of ['net', 'brush', 'shuffle']) save.boosters[k] = (save.boosters[k] || 0) + 5; persist(); if (G) renderHUD(); toast('+5 Booster'); },
-    unlock: () => { save.seen = SPECIES.length; SPECIES.forEach(sp => save.caught[sp.id] = Math.max(save.caught[sp.id] || 0, 3)); persist(); toast('Alle Arten freigeschaltet'); },
+    unlock: () => { save.seen = SPECIES.length; SPECIES.forEach(sp => save.caught[sp.id] = Math.max(save.caught[sp.id] || 0, 3)); if (xmasOn()) XMAS_SPECIES.forEach(sp => { save.caught[sp.id] = Math.max(save.caught[sp.id] || 0, 3); save.xmasSeen = { ...(save.xmasSeen || {}), [sp.id]: true }; }); persist(); toast('Alle Arten freigeschaltet'); },
     win: () => {
       hideModal();
       commit(() => { G.bubbles.forEach(b => b.items = []); G.tray = []; G.bowls.forEach(w => { w.items = []; w.completing = false; }); G.pending = 0; G.collected = G.total; });
@@ -1575,13 +1596,16 @@ function openAquarium() {
   clearInterval(timerId);
   showScreen('aquarium');
   const tank = $('#tank-swim');
-  const list = save.aquarium.slice(-24);
+  const list = save.aquarium.filter(id => SPECIES_BY_ID[id]).slice(-24);   // Weihnachtstiere nur in der Weihnachtszeit
   tank.innerHTML = list.length ? list.map(sp => {
     const dur = 9 + Math.random() * 10, y = 8 + Math.random() * 72, size = 11 + Math.random() * 6;
     return `<div class="swimmer" style="top:${y}%;width:calc(${size} * var(--u));animation-duration:${dur}s;animation-delay:-${Math.random() * dur}s"><div class="bob">${creatureSVG(sp)}</div></div>`;
   }).join('') : `<p class="tank-empty">Noch leer – sammle Tiere im Spiel!</p>`;
-  const total = Object.values(save.caught).reduce((a, b) => a + b, 0);
-  $('#aqua-stats').textContent = `${total} Tiere gesammelt · ${Object.keys(save.caught).length}/${SPECIES.length} Arten`;
+  const shown = Object.keys(save.caught).filter(id => SPECIES_BY_ID[id]);
+  const total = shown.reduce((a, id) => a + save.caught[id], 0);
+  const normal = shown.filter(id => !SPECIES_BY_ID[id].xmas).length;
+  const xm = xmasOn() ? ` · 🎄 ${shown.length - normal}/${XMAS_SPECIES.length}` : '';
+  $('#aqua-stats').textContent = `${total} Tiere gesammelt · ${normal}/${SPECIES.length} Arten${xm}`;
   renderAlbum();
 }
 let albumTab = 'animals';
@@ -1597,10 +1621,13 @@ function renderAlbum() {
     }).join('') + `<p class="pc-more">Weitere Postkarten folgen …</p>`;
     return;
   }
-  al.innerHTML = SPECIES.map((s, i) => {
-    const n = save.caught[s.id] || 0, known = i < save.seen;
-    return `<div class="acard ${n ? '' : 'locked'}">${creatureSVG(s.id)}<b>${known ? s.name : '???'}</b><small>${n ? n + '× gefangen' : known ? 'noch nicht gefangen' : 'unentdeckt'}</small></div>`;
-  }).join('');
+  const card = (s, known, cls = '') => {
+    const n = save.caught[s.id] || 0;
+    return `<div class="acard ${cls} ${n ? '' : 'locked'}">${creatureSVG(s.id)}<b>${known || n ? s.name : '???'}</b><small>${n ? n + '× gefangen' : known ? 'noch nicht gefangen' : 'unentdeckt'}</small></div>`;
+  };
+  const xm = xmasOn() ? `<h3 class="album-h">🎄 Weihnachtstiere – nur in der Weihnachtszeit</h3>`
+    + XMAS_SPECIES.map(s => card(s, (save.xmasSeen || {})[s.id], 'xm')).join('') + `<h3 class="album-h">Meeresbewohner</h3>` : '';
+  al.innerHTML = xm + SPECIES.map((s, i) => card(s, i < save.seen)).join('');
 }
 
 // ---------- Icons ----------
