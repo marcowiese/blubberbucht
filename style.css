@@ -784,3 +784,11 @@ html.android { --sb: max(env(safe-area-inset-bottom, 0px), 12px); }
 
 /* Studio-Logo BunnyLabs unter dem Titel */
 .byline .studio-logo { display: block; height: calc(15 * var(--u)); width: auto; margin: 0 auto; filter: drop-shadow(0 calc(.3 * var(--u)) 0 rgba(0,40,100,.45)); }
+
+/* Hochformat: Platz für Münzen & Zahnrad oben, Versionsnummer unten (Inhalt rutscht nicht darunter) */
+@media not ((orientation: landscape) and (min-aspect-ratio: 5/4)) {
+  #screen-menu { justify-content: flex-start; padding-top: calc(env(safe-area-inset-top) + 17 * var(--u)); padding-bottom: calc(max(env(safe-area-inset-bottom), var(--sb, 0px)) + 9 * var(--u)); }
+  #screen-menu > * { flex-shrink: 0; }
+  #screen-menu > .logo { margin-top: auto; }
+  #screen-menu > .menu-btns { margin-bottom: auto; }
+}

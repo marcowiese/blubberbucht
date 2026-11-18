@@ -1,7 +1,7 @@
 // Blubberbucht – Spiellogik
 'use strict';
 
-const APP_VERSION = '1.27.1'; // nicht von Hand ändern: tools/release.sh <version>
+const APP_VERSION = '1.27.2'; // nicht von Hand ändern: tools/release.sh <version>
 const TRAY = 6, BOWLS = 4, BOWL_PRICE = 500, BOOSTER_PRICE = 200;
 const SAVE_KEY = 'blubberbucht-v1';
 const $ = s => document.querySelector(s);
@@ -1460,6 +1460,22 @@ function showScreen(name) {
   if (TUT.step) { TUT.step = 0; $('#tut')?.remove(); }
   document.querySelectorAll('.screen').forEach(s => s.hidden = s.id !== 'screen-' + name);
 }
+// Startmenü an niedrige Bildschirme anpassen: passt nicht alles hinein, wird die Tiergruppe in der Mitte kleiner
+// (statt dass das Logo unter Münzen/Zahnrad rutscht oder die Versionsnummer die Knöpfe überdeckt)
+function fitMenu() {
+  const scr = $('#screen-menu'), hero = $('#hero');
+  if (!scr || scr.hidden || !hero) return;
+  hero.style.transform = ''; hero.style.marginBottom = ''; hero.style.marginTop = '';
+  // wie weit ragen die Knöpfe unten über den freien Bereich (über der Versionsnummer) hinaus?
+  const limit = scr.getBoundingClientRect().bottom - parseFloat(getComputedStyle(scr).paddingBottom);
+  const over = $('#screen-menu .menu-btns').getBoundingClientRect().bottom - limit;
+  if (over <= 0) return;
+  const h = hero.offsetHeight, k = Math.max(.35, (h - over - 4) / h);
+  const lost = h * (1 - k);
+  hero.style.transformOrigin = '50% 0';
+  hero.style.transform = `scale(${k.toFixed(3)})`;
+  hero.style.marginBottom = `calc(${-lost}px + 2 * var(--u))`;
+}
 function openMenu() {
   if (updateWaiting && applyUpdate()) return;
   clearInterval(timerId); clearFx();
@@ -1468,6 +1484,7 @@ function openMenu() {
   renderCoins();
   showScreen('menu');
   renderAdventBtn();
+  fitMenu();
   setTimeout(checkDaily, 500);
 }
 
@@ -1706,7 +1723,8 @@ function init() {
     if (k === 'vib') vib(20);
   });
   let rt;
-  window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(onResize, 150); });
+  window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { onResize(); fitMenu(); }, 150); });
+  if (document.fonts) document.fonts.ready.then(fitMenu);
   // Ändert sich die Spielfeldgröße (z. B. Schrift nachgeladen, Label in der Kopfzeile), sofort anpassen – nicht erst beim ersten Antippen
   if (window.ResizeObserver) {
     let lastSize = '';
