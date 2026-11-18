@@ -27,7 +27,7 @@ const HAT_KIND = {
 // Einzelkorrekturen pro Art (geprüft am großen Bild: Mütze sitzt über den Augen, nicht darauf)
 const HAT_ID = {
   krabbe: [52, 21, -6, .74], schildi: [22, 31, -18, .6], seppi: [53, 14, -8, .6], igor: [50, 31, -6, .8],
-  schnecki: [29, 30, -10, .58], bruno: [35, 21, -8, .58], kurt: [30, 30, -22, .72],
+  schnecki: [29, 34, -10, .58], bruno: [35, 21, -8, .58], kurt: [30, 30, -22, .72],
   krabbo: [69, 25, 16, .46],     // kleine schräge Mütze auf dem rechten Auge, Krone bleibt sichtbar
 };
 
