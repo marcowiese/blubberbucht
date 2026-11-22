@@ -801,3 +801,8 @@ html.android { --sb: max(env(safe-area-inset-bottom, 0px), 12px); }
   padding: 0 calc(1 * var(--u)); border-radius: calc(2.8 * var(--u)); background: #ff4b5a; color: #fff; border: calc(.5 * var(--u)) solid #fff;
   font-size: calc(3.4 * var(--u)); line-height: calc(4.6 * var(--u)); text-align: center; box-shadow: 0 calc(.4 * var(--u)) 0 rgba(0,40,90,.3);
 }
+.slot.stash:not(.empty) { cursor: pointer; }
+.stash-list { display: grid; grid-template-columns: repeat(4, 1fr); gap: calc(2 * var(--u)); margin: calc(3 * var(--u)) 0; }
+.stash-item { background: linear-gradient(#fff9e6, #ffeab0); border: calc(.6 * var(--u)) solid #f2b33a; border-radius: calc(3 * var(--u)); padding: calc(1.4 * var(--u)); text-align: center; }
+.stash-item .cr-img { width: 100%; aspect-ratio: 1; height: auto; }
+.stash-item b { display: block; font-size: calc(4.2 * var(--u)); color: #8a5a1a; }

@@ -1,7 +1,7 @@
 // Blubberbucht – Spiellogik
 'use strict';
 
-const APP_VERSION = '1.28.0'; // nicht von Hand ändern: tools/release.sh <version>
+const APP_VERSION = '1.28.1'; // nicht von Hand ändern: tools/release.sh <version>
 const TRAY = 5, BOWLS = 4, BOWL_PRICE = 500, BOOSTER_PRICE = 200;
 const SAVE_KEY = 'blubberbucht-v1';
 const $ = s => document.querySelector(s);
@@ -862,6 +862,17 @@ function boostBrush() {
   }, true);
   return true;
 }
+// Stapelfeld antippen: zeigen, welche Tiere drin liegen (nach Art gruppiert)
+function openStash() {
+  if (!G || G.over || !(G.stash || []).length) return;
+  const counts = new Map();
+  for (const u of G.stash) counts.set(G.cr[u].sp, (counts.get(G.cr[u].sp) || 0) + 1);
+  Sfx.click();
+  showModal(`<div class="ribbon">Im Stapelfeld</div>
+    <p>Diese Tiere gehen von selbst ins Aquarium, sobald es nach ihrer Art sucht.</p>
+    <div class="stash-list">${[...counts].map(([sp, n]) => `<div class="stash-item">${creatureSVG(sp)}<b>${n}×</b></div>`).join('')}</div>
+    <button class="btn green" data-act="close">Weiter</button>`, { close: hideModal });
+}
 function boostShuffle() {
   const all = [];
   G.bubbles.forEach(b => all.push(...b.items));
@@ -1697,6 +1708,7 @@ function init() {
   });
   $('#hero').innerHTML = `<div class="h1">${creatureSVG('zitrino')}</div><div class="h2">${creatureSVG('schildi')}</div><div class="h3">${creatureSVG('rosalie')}</div><div class="h4">${creatureSVG('okti')}</div>`;
   $('#board').addEventListener('click', onBoardTap);
+  $('#tray').addEventListener('click', e => { if (e.target.closest('.slot.stash:not(.empty)')) openStash(); });
   document.querySelector('.shelf').addEventListener('click', e => { if (e.target.closest('.locked, .buy')) { Sfx.click(); offerBowl(); } });
   $('#btn-play').addEventListener('click', async () => {
     Sfx.unlock(); Sfx.click();

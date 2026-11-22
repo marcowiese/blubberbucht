@@ -18,7 +18,7 @@ Ein entspanntes Unterwasser-Sortierpuzzle für Smartphone und Tablet – direkt 
 
 ## Booster
 - **Kescher** – holt die fehlenden Tiere für ein Glas, auch aus verdeckten Blasen
-- **Aufräumen** – räumt die ganze Ablage in ein Stapelfeld (6. Feld); von dort gehen die Tiere automatisch ins passende Aquarium. Die Ablage hat sonst 5 Felder.
+- **Aufräumen** – räumt die ganze Ablage in ein Stapelfeld (6. Feld); von dort gehen die Tiere automatisch ins passende Aquarium. Antippen des Stapelfelds zeigt, welche Tiere drin liegen. Die Ablage hat sonst 5 Felder.
 - **Wirbel** – mischt alle Tiere in den Blasen neu
 
 ## Weiteres
