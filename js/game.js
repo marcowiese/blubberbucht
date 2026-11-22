@@ -1,7 +1,7 @@
 // Blubberbucht – Spiellogik
 'use strict';
 
-const APP_VERSION = '1.27.2'; // nicht von Hand ändern: tools/release.sh <version>
+const APP_VERSION = '1.27.3'; // nicht von Hand ändern: tools/release.sh <version>
 const TRAY = 6, BOWLS = 4, BOWL_PRICE = 500, BOOSTER_PRICE = 200;
 const SAVE_KEY = 'blubberbucht-v1';
 const $ = s => document.querySelector(s);
@@ -314,7 +314,7 @@ function physStep(dt) {
   const B = G.bubbles, H = G.H, n = B.length, drag = Math.exp(-1.5 * dt), e = .26;
   const now = performance.now();
   for (const b of B) {
-    b.support = false;
+    b.support = false; b.pen = 0;
     if (b.sleep || b.hold > now) continue;          // noch nicht losgelassen
     b.vx = (b.vx || 0) * drag;
     b.vy = ((b.vy || 0) + 320 * dt) * drag;                 // Schwerkraft (im Wasser gebremst)
@@ -338,10 +338,16 @@ function physStep(dt) {
         const rvel = Math.hypot((b.vx || 0) - (a.vx || 0), (b.vy || 0) - (a.vy || 0));
         if (a.sleep && rvel > 40) a.sleep = false;
         if (b.sleep && rvel > 40) b.sleep = false;
+        // steckt eine Blase tief in einer schlafenden, muss die schlafende mit ausweichen (sonst wirkt sie wie eine feste Wand)
+        const deep = min - d > 3;
+        if (deep && a.sleep) { a.sleep = false; a.still = 0; a.anc = null; }
+        if (deep && b.sleep) { b.sleep = false; b.still = 0; b.anc = null; }
         // Masse ~ Fläche; schlafende Blasen wirken wie fest
         const wa = a.sleep ? 0 : 1 / (a.r * a.r), wb = b.sleep ? 0 : 1 / (b.r * b.r), w = wa + wb;
         if (!w) continue;
         const pen = min - d;
+        if (pen > a.pen) a.pen = pen;
+        if (pen > b.pen) b.pen = pen;                 // merken: steckt noch in einem Nachbarn -> darf nicht einschlafen
         if (pen > .04) {
           const corr = Math.min(pen * .6, 1.4);
           a.x -= nx * corr * wa / w; a.y -= ny * corr * wa / w;
@@ -370,8 +376,11 @@ function physStep(dt) {
     // ruhig = aufliegend und langsam, ODER (z. B. schräg eingeklemmt) eine halbe Sekunde lang fast reglos
     // Ankerpunkt: hat sich die Blase 0,35 s lang insgesamt kaum bewegt (z. B. schräg eingeklemmt), ist sie in Ruhe
     if (!b.anc || Math.hypot(b.x - b.anc.x, b.y - b.anc.y) > .3) b.anc = { x: b.x, y: b.y, t: now };
-    b.still = b.support && v < 10 ? (b.still || 0) + 1 : 0;
-    if (b.still > 10 || now - b.anc.t > 350) { b.sleep = true; b.vx = 0; b.vy = 0; b.anc = null; }
+    // Einschlafen nur, wenn die Blase in keinem Nachbarn mehr steckt (sonst bleiben z. B. nach dem Besen zwei Blasen übereinander liegen)
+    const free = b.pen < 3;            // normales Aneinanderdrücken im Haufen (bis ca. 2) zählt nicht
+    b.still = free && b.support && v < 10 ? (b.still || 0) + 1 : 0;
+    if (!free) b.anc = null;
+    if (b.still > 10 || (b.anc && now - b.anc.t > 350)) { b.sleep = true; b.vx = 0; b.vy = 0; b.anc = null; }
     else awake++;
   }
   return awake;
@@ -839,8 +848,12 @@ function boostBrush() {
     const take = G.tray.splice(0, Math.min(3, G.tray.length));
     take.forEach((u, i) => G.cr[u].slot = i);
     const r = R0 * (G.rk || 1) * CAP_R[take.length];
-    // neue Blase landet unten im Spielfeld (sofort antippbar), die anderen werden nach oben geschoben
-    const b = { id: G.nextB++, cap: take.length, items: take, r, x: r + Math.random() * (100 - 2 * r), y: G.H - r };
+    // neue Blase landet unten im Spielfeld (sofort antippbar). Vorher in ihrer Spalte Platz machen:
+    // alle Blasen, die sie berühren würde, rücken um ihre Höhe nach oben und sacken dann von oben nach.
+    // (Sonst steckt sie seitlich in einer Bodenblase fest und die Physik bekommt die beiden nicht auseinander.)
+    const x = r + Math.random() * (100 - 2 * r), y = G.H - r, lift = 2 * r * SQUEEZE;
+    for (const o of G.bubbles) if (Math.abs(o.x - x) < (o.r + r) * SQUEEZE) o.y -= lift;
+    const b = { id: G.nextB++, cap: take.length, items: take, r, x, y };
     G.bubbles.push(b);
   });
   return true;
