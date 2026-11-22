@@ -792,3 +792,12 @@ html.android { --sb: max(env(safe-area-inset-bottom, 0px), 12px); }
   #screen-menu > .logo { margin-top: auto; }
   #screen-menu > .menu-btns { margin-bottom: auto; }
 }
+
+/* Stapelfeld (6. Ablagefeld): erscheint erst durch den Besen */
+.slot.stash.empty { visibility: hidden; }
+.slot.stash:not(.empty) { background: linear-gradient(#fff3c4, #ffd76a); border-color: #f2b33a; }
+.slot.stash .stash-n {
+  position: absolute; z-index: 99; top: calc(-1.8 * var(--u)); right: calc(-1.6 * var(--u)); min-width: calc(5.6 * var(--u)); height: calc(5.6 * var(--u));
+  padding: 0 calc(1 * var(--u)); border-radius: calc(2.8 * var(--u)); background: #ff4b5a; color: #fff; border: calc(.5 * var(--u)) solid #fff;
+  font-size: calc(3.4 * var(--u)); line-height: calc(4.6 * var(--u)); text-align: center; box-shadow: 0 calc(.4 * var(--u)) 0 rgba(0,40,90,.3);
+}

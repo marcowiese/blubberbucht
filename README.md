@@ -8,7 +8,7 @@ Ein entspanntes Unterwasser-Sortierpuzzle für Smartphone und Tablet – direkt 
 
 ## So geht's
 - Tippe Meeresbewohner in den Blasen an.
-- Passt ein Tier zu einer Karte unter den Gläsern, schwimmt es ins Glas – sonst landet es in der Ablage (6 Plätze).
+- Passt ein Tier zu einer Karte unter den Gläsern, schwimmt es ins Glas – sonst landet es in der Ablage (5 Plätze).
 - Drei gleiche im Glas = gesammelt, das Glas bekommt eine neue Art.
 - Blasen in verschiedenen Größen liegen lose aufeinander. Leere Blasen platzen, die anderen rutschen schräg nach und rollen seitlich ab – neue kommen von oben ins Bild.
 - Ist die Ablage voll, ist das Level verloren.
@@ -18,7 +18,7 @@ Ein entspanntes Unterwasser-Sortierpuzzle für Smartphone und Tablet – direkt 
 
 ## Booster
 - **Kescher** – holt die fehlenden Tiere für ein Glas, auch aus verdeckten Blasen
-- **Aufräumen** – packt bis zu 3 Tiere aus der Ablage zurück in eine neue Blase
+- **Aufräumen** – räumt die ganze Ablage in ein Stapelfeld (6. Feld); von dort gehen die Tiere automatisch ins passende Aquarium. Die Ablage hat sonst 5 Felder.
 - **Wirbel** – mischt alle Tiere in den Blasen neu
 
 ## Weiteres

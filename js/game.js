@@ -1,8 +1,8 @@
 // Blubberbucht – Spiellogik
 'use strict';
 
-const APP_VERSION = '1.27.3'; // nicht von Hand ändern: tools/release.sh <version>
-const TRAY = 6, BOWLS = 4, BOWL_PRICE = 500, BOOSTER_PRICE = 200;
+const APP_VERSION = '1.28.0'; // nicht von Hand ändern: tools/release.sh <version>
+const TRAY = 5, BOWLS = 4, BOWL_PRICE = 500, BOOSTER_PRICE = 200;
 const SAVE_KEY = 'blubberbucht-v1';
 const $ = s => document.querySelector(s);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -98,7 +98,7 @@ function genLevel(L) {
   const q = []; for (const sp in counts) for (let i = 0; i < counts[sp] / 3; i++) q.push(sp);
   return { level: L, H, rk, bubbles, cols, cr, nextB: bubbles.length, total: n, collected: 0, species: chosen, queue: shuffle(q),
     bowls: Array.from({ length: BOWLS }, (_, i) => ({ sp: null, items: [], completing: false, locked: i >= 2 })),
-    tray: [], pending: 0, over: false, paused: false, timed: p.timed, tier: p.tier,
+    tray: [], stash: [], pending: 0, over: false, paused: false, timed: p.timed, tier: p.tier,
     timeLeft: p.timed ? timeLimit(L, n) : 0, extraTime: false, usedBoosters: 0 };
 }
 
@@ -408,6 +408,11 @@ function settle() {
     for (let i = 0; i < G.tray.length && bw.items.length < 3; i++) {
       if (G.cr[G.tray[i]].sp === bw.sp) { bw.items.push(G.tray[i]); G.tray.splice(i, 1); i--; }
     }
+    // Stapelfeld (vom Besen): passende Tiere gehen automatisch ins Aquarium – egal wo sie im Stapel liegen
+    const st = G.stash || [];
+    for (let i = 0; i < st.length && bw.items.length < 3; i++) {
+      if (G.cr[st[i]].sp === bw.sp) { bw.items.push(st[i]); st.splice(i, 1); i--; }
+    }
     if (bw.items.length === 3) completeBowl(bw);
   }
 }
@@ -521,7 +526,12 @@ function renderBowls() {
 }
 function renderTray() {
   const t = $('#tray');
-  t.innerHTML = Array.from({ length: TRAY }, (_, i) => `<div class="slot">${G.tray[i] ? crHTML(G.tray[i]) : ''}</div>`).join('');
+  const st = G.stash || [];
+  // 6. Feld = Stapelfeld: erst sichtbar, wenn der Besen benutzt wurde; alle Tiere liegen übereinander, die Zahl zeigt die Menge
+  const stash = st.length
+    ? `<div class="slot stash">${st.map((u, i) => crHTML(u, `z-index:${i + 1}`)).join('')}<b class="stash-n">${st.length}</b></div>`
+    : '<div class="slot stash empty" aria-hidden="true"></div>';
+  t.innerHTML = Array.from({ length: TRAY }, (_, i) => `<div class="slot">${G.tray[i] ? crHTML(G.tray[i]) : ''}</div>`).join('') + stash;
   t.classList.toggle('danger', G.tray.length >= TRAY - 1);
 }
 function renderHUD() {
@@ -745,7 +755,7 @@ function afterChange() {
   renderHUD();
   if (!G || G.over) return;
   const left = G.bubbles.reduce((a, b) => a + b.items.length, 0);
-  if (left === 0 && G.tray.length === 0 && G.pending === 0 && G.bowls.every(w => !w.items.length)) {
+  if (left === 0 && G.tray.length === 0 && !(G.stash || []).length && G.pending === 0 && G.bowls.every(w => !w.items.length)) {
     G.over = true;
     setTimeout(winLevel, 450);
   } else if (G.tray.length >= TRAY && G.pending === 0) {
@@ -809,7 +819,7 @@ function offerBooster(k) {
 // ---------- Booster ----------
 const BOOSTER_INFO = {
   net: { name: 'Kescher', desc: 'Fängt die fehlenden Tiere für ein Glas – auch aus verdeckten Blasen.' },
-  brush: { name: 'Aufräumen', desc: 'Packt bis zu 3 Tiere aus der Ablage zurück in eine neue Blase.' },
+  brush: { name: 'Aufräumen', desc: 'Räumt die ganze Ablage in ein Extra-Feld. Von dort gehen die Tiere von selbst ins passende Aquarium.' },
   shuffle: { name: 'Wirbel', desc: 'Mischt alle Tiere in den Blasen neu.' },
 };
 function useBooster(k) {
@@ -844,18 +854,12 @@ function boostNet() {
 }
 function boostBrush() {
   if (!G.tray.length) { toast('Die Ablage ist schon leer.'); return false; }
+  // Wie im Original: alle Tiere aus der Ablage wandern ins Stapelfeld (6. Feld). Die Blasen bleiben unberührt.
   commit(() => {
-    const take = G.tray.splice(0, Math.min(3, G.tray.length));
-    take.forEach((u, i) => G.cr[u].slot = i);
-    const r = R0 * (G.rk || 1) * CAP_R[take.length];
-    // neue Blase landet unten im Spielfeld (sofort antippbar). Vorher in ihrer Spalte Platz machen:
-    // alle Blasen, die sie berühren würde, rücken um ihre Höhe nach oben und sacken dann von oben nach.
-    // (Sonst steckt sie seitlich in einer Bodenblase fest und die Physik bekommt die beiden nicht auseinander.)
-    const x = r + Math.random() * (100 - 2 * r), y = G.H - r, lift = 2 * r * SQUEEZE;
-    for (const o of G.bubbles) if (Math.abs(o.x - x) < (o.r + r) * SQUEEZE) o.y -= lift;
-    const b = { id: G.nextB++, cap: take.length, items: take, r, x, y };
-    G.bubbles.push(b);
-  });
+    G.stash = (G.stash || []).concat(G.tray);
+    G.tray = [];
+    settle();
+  }, true);
   return true;
 }
 function boostShuffle() {
@@ -905,7 +909,7 @@ function startLevel(L) {
   hideModal(); clearFx();
   showScreen('game');
   // Ablage-Plätze schon vor dem Messen anlegen, damit die Spielfeldgröße stimmt (sonst ist das Feld beim ersten Level zu hoch)
-  if (!$('#tray').children.length) $('#tray').innerHTML = '<div class="slot"></div>'.repeat(TRAY);
+  if (!$('#tray').children.length) $('#tray').innerHTML = '<div class="slot"></div>'.repeat(TRAY) + '<div class="slot stash empty"></div>';
   if (!$('#cards').children.length) $('#cards').innerHTML = '<div class="card empty"></div>'.repeat(BOWLS);
   if (!$('#bowls').children.length) $('#bowls').innerHTML = '<div class="bowl"></div>'.repeat(BOWLS);
   requestAnimationFrame(() => {
@@ -1299,7 +1303,7 @@ function openDev(back) {
     unlock: () => { save.seen = SPECIES.length; SPECIES.forEach(sp => save.caught[sp.id] = Math.max(save.caught[sp.id] || 0, 3)); if (xmasOn()) XMAS_SPECIES.forEach(sp => { save.caught[sp.id] = Math.max(save.caught[sp.id] || 0, 3); save.xmasSeen = { ...(save.xmasSeen || {}), [sp.id]: true }; }); persist(); toast('Alle Arten freigeschaltet'); },
     win: () => {
       hideModal();
-      commit(() => { G.bubbles.forEach(b => b.items = []); G.tray = []; G.bowls.forEach(w => { w.items = []; w.completing = false; }); G.pending = 0; G.collected = G.total; });
+      commit(() => { G.bubbles.forEach(b => b.items = []); G.tray = []; G.stash = []; G.bowls.forEach(w => { w.items = []; w.completing = false; }); G.pending = 0; G.collected = G.total; });
       clearFx(); afterChange();
     },
     lose: () => { hideModal(); G.over = true; loseLevel(G.timed ? 'time' : 'tray'); },
@@ -1386,7 +1390,7 @@ function tutRender() {
   if (TUT.step === 3) { el = document.querySelector(`[data-bowl="${TUT.bowl}"]`); text = 'Super! Sind <b>3 gleiche</b> Tiere im Glas, sind sie gesammelt und das Glas bekommt eine neue Karte.'; }
   if (TUT.step === 4) { el = $('#tray'); text = 'Passt ein Tier zu keiner Karte, landet es in der <b>Ablage</b>. Ist die Ablage voll, ist das Level verloren – also gut planen!'; }
   if (TUT.step === 5) { el = document.querySelector('[data-booster="net"]'); text = '<b>Kescher:</b> fängt die fehlenden Tiere für ein Glas – auch aus Blasen, die noch weit oben hängen.'; }
-  if (TUT.step === 6) { el = document.querySelector('[data-booster="brush"]'); text = '<b>Aufräumen:</b> holt bis zu 3 Tiere aus der Ablage zurück in eine Blase. Die Rettung, wenn die Ablage voll wird!'; }
+  if (TUT.step === 6) { el = document.querySelector('[data-booster="brush"]'); text = '<b>Aufräumen:</b> räumt die ganze Ablage in ein Extra-Feld. Von dort gehen die Tiere von selbst ins passende Aquarium. Die Rettung, wenn die Ablage voll wird!'; }
   if (TUT.step === 7) { el = document.querySelector('[data-booster="shuffle"]'); text = '<b>Wirbel:</b> mischt alle Tiere in den Blasen neu – praktisch, wenn gerade nichts passt. Booster bekommst du als Belohnung oder für Münzen.'; btn = "Los geht's!"; }
   if (!el) return tutStop();
   const r = el.getBoundingClientRect(), pad = 8;
